@@ -1,0 +1,38 @@
+# PKGBUILD
+pkgname=zelix-hello
+pkgver=276937a
+pkgrel=1
+pkgdesc="ZelixOS Welcome Application"
+arch=('any')
+url="https://github.com/ZelixOS/zelix-hello"
+license=('GPL')
+depends=('python' 'python-pyqt6')
+makedepends=('git')
+
+# Kaynağı doğrudan git reposuna bağlıyoruz
+source=("git+https://github.com/ZelixOS/zelix-hello.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  # Eğer tag varsa tag'e göre, yoksa commit sayısına göre versiyon oluşturur
+  git describe --long --tags --always 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' || echo "1.0.0"
+}
+
+package() {
+    cd "$pkgname"
+
+    install -d "$pkgdir/usr/share/$pkgname"
+    install -d "$pkgdir/usr/share/applications"
+    install -d "$pkgdir/usr/bin"
+
+    # Gerekli dosyaları kopyala
+    cp -rp main.py tabs ui utils "$pkgdir/usr/share/$pkgname/"
+    
+    install -m644 zelix-hello.desktop "$pkgdir/usr/share/applications/zelix-hello.desktop"
+
+    # Başlatıcı script oluştur
+    echo '#!/bin/bash' > "$pkgdir/usr/bin/$pkgname"
+    echo "exec python /usr/share/$pkgname/main.py \"\$@\"" >> "$pkgdir/usr/bin/$pkgname"
+    chmod +x "$pkgdir/usr/bin/$pkgname"
+}
