@@ -1,0 +1,31 @@
+# PKGBUILD
+pkgname=zelix-updater
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="ZelixOS official updater application"
+arch=('any')
+url="https://github.com/ZelixOS/zelix-updater"
+license=('GPL')
+depends=('python' 'python-pyqt6')
+
+source=("https://github.com/ZelixOS/zelix-updater/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    # İndirilen klasörün içine gir
+    cd "${pkgname}-${pkgver}"
+
+    # 1. Önce gerekli klasörleri sanal sistemde oluştur (-d parametresi klasör açar)
+    install -d "$pkgdir/usr/share/zelix-updater"
+    install -d "$pkgdir/usr/share/applications"
+    install -d "$pkgdir/usr/bin"
+
+    # 2. Dosyaları kopyala (-m kipi yetkileri ayarlar: 755 çalıştırılabilir, 644 okunabilir)
+    install -m755 main.py "$pkgdir/usr/share/zelix-updater/main.py"
+    install -m644 zelix-updater.desktop "$pkgdir/usr/share/applications/zelix-updater.desktop"
+
+    # 3. Kullanıcının terminale 'zelix-updater' yazınca açılması için başlatıcı script oluştur
+    echo '#!/bin/bash' > "$pkgdir/usr/bin/zelix-updater"
+    echo 'exec python /usr/share/zelix-updater/main.py "$@"' >> "$pkgdir/usr/bin/zelix-updater"
+    chmod +x "$pkgdir/usr/bin/zelix-updater"
+}

@@ -1,8 +1,8 @@
 # PKGBUILD
 pkgname=zelix-hello
-pkgver=276937a
+pkgver=v1.0.0.r2.g88a6997
 pkgrel=1
-pkgdesc="ZelixOS Welcome Application"
+pkgdesc="ZelixOS Hello Application"
 arch=('any')
 url="https://github.com/ZelixOS/zelix-hello"
 license=('GPL')
@@ -29,7 +29,7 @@ package() {
     # Gerekli dosyaları kopyala
     cp -rp main.py tabs ui utils "$pkgdir/usr/share/$pkgname/"
     
-    install -m644 zelix-hello.desktop "$pkgdir/usr/share/applications/zelix-hello.desktop"
+    install -m755 zelix-hello.desktop "$pkgdir/usr/share/applications/zelix-hello.desktop"
 
     # Başlatıcı script oluştur
     echo '#!/bin/bash' > "$pkgdir/usr/bin/$pkgname"

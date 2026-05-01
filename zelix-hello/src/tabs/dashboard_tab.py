@@ -203,33 +203,10 @@ class DashboardTab(QWidget):
         self.lbl_launch.setText(Translator.get("lbl_launch_start"))
 
     def launch_installer(self):
-        # Try to get localized Desktop path
         try:
-            desktop_path = subprocess.check_output(["xdg-user-dir", "DESKTOP"]).decode("utf-8").strip()
-        except Exception:
-            desktop_path = os.path.expanduser("~/Desktop")
-            if not os.path.exists(desktop_path):
-                desktop_path = os.path.expanduser("~/Masaüstü")
-        
-        desktop_file = os.path.join(desktop_path, "zelix-installer.desktop")
-        
-        if os.path.exists(desktop_file):
-            # Try xdg-open first as it handles Desktop files well in most DEs
-            # then fallback to gtk-launch or manual execution
-            try:
-                subprocess.Popen(["xdg-open", desktop_file])
-            except Exception:
-                try:
-                    subprocess.Popen(["gtk-launch", "zelix-installer.desktop"])
-                except Exception as e:
-                    print(f"Could not launch installer: {e}")
-        else:
-            # Fallback: try to launch directly if we know where it is
-            fallback_script = os.path.expanduser("~/ZelixBuild/zelixins/myself.py")
-            if os.path.exists(fallback_script):
-                subprocess.Popen(["alacritty", "-e", "sudo", "python", fallback_script])
-            else:
-                print(f"Installer desktop file not found at {desktop_file}")
+            subprocess.Popen(["zelix-installer"])
+        except Exception as e:
+            print(f"Could not launch installer: {e}")
 
     def toggle_autostart(self):
         autostart_dir = os.path.expanduser("~/.config/autostart")
