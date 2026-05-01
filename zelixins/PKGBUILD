@@ -1,33 +1,31 @@
 # PKGBUILD - ZelixOS GUI Installer
 pkgname=zelixins
 pkgver=1.04
-pkgrel=1
+pkgrel=2
 pkgdesc="Official graphical installer for ZelixOS"
 arch=('any')
 url="https://github.com/ZelixOS/zelixins"
 license=('GPL')
 depends=('python' 'python-pyqt6' 'archinstall')
 
-source=("https://github.com/ZelixOS/zelixins/archive/refs/tags/v${pkgver}.tar.gz"
-        "zelix-installer.desktop")
+source=("myself.py"
+        "zelix-installer.desktop"
+        "zelix_post_install.sh")
 sha256sums=('SKIP'
+            'SKIP'
             'SKIP')
 
 package() {
-    # GitHub'dan indirilen klasörün içine gir
-    cd "${pkgname}-${pkgver}"
-
     # 1. Gerekli sistem dizinlerini oluştur
     install -d "$pkgdir/usr/share/zelixins"
     install -d "$pkgdir/usr/share/applications"
     install -d "$pkgdir/usr/bin"
 
     # 2. Tüm kaynak dosyalarını /usr/share/zelixins altına kopyala
-    # -p parametresi alt klasörleri (icons, slides, zelixdeps vb.) koruyarak kopyalar
-    cp -rp myself.py icons slides zelixdeps zelix_post_install.sh "$pkgdir/usr/share/zelixins/"
+    cp -rp "$startdir/myself.py" "$startdir/icons" "$startdir/slides" "$startdir/zelixdeps" "$startdir/zelix_post_install.sh" "$pkgdir/usr/share/zelixins/"
 
     # 3. .desktop dosyasını uygulamalar menüsüne kopyala
-    install -m755 "${srcdir}/zelix-installer.desktop" "$pkgdir/usr/share/applications/zelix-installer.desktop"
+    install -m755 "$startdir/zelix-installer.desktop" "$pkgdir/usr/share/applications/zelix-installer.desktop"
 
     # 4. Terminalden çalıştırma kolaylığı (Symlink)
     ln -s /usr/share/zelixins/myself.py "$pkgdir/usr/bin/zelix-installer"
