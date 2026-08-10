@@ -1,7 +1,7 @@
 # PKGBUILD - ZelixOS GUI Installer
 pkgname=zelixins
-pkgver=1.04
-pkgrel=2
+pkgver=1.04.3
+pkgrel=1
 pkgdesc="Official graphical installer for ZelixOS"
 arch=('any')
 url="https://github.com/ZelixOS/zelixins"
@@ -29,6 +29,7 @@ package() {
 
     # 4. Terminalden çalıştırma kolaylığı (Symlink)
     ln -s /usr/share/zelixins/myself.py "$pkgdir/usr/bin/zelix-installer"
+    ln -s /usr/share/zelixins/myself.py "$pkgdir/usr/bin/zelixins"
     
     # Çalıştırma yetkilerini garantile
     chmod +x "$pkgdir/usr/share/zelixins/myself.py"

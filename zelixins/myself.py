@@ -1712,6 +1712,8 @@ class MainWindow(QWidget):
 
 
 if __name__ == "__main__":
+    if os.geteuid() != 0:
+        os.execvp("sudo", ["sudo", "-E", sys.executable] + sys.argv)
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
