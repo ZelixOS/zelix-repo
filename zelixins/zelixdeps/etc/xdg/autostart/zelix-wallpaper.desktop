@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ZelixOS Wallpaper Setter
+Comment=Sets ZelixOS Aurora wallpaper on first login
+Exec=sh -c "sleep 1 && plasma-apply-wallpaperimage '/usr/share/wallpapers/Zelix/ZelixOS Aurora.png' 2>/dev/null || true"
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
+Terminal=false
