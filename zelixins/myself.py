@@ -1478,6 +1478,18 @@ if [ -d "{deps_path}" ]; then
     cp -arv "{deps_path}/." /mnt/zelix_target/
 fi
 
+echo "Masaüstü teması ve arka plan ayarlanıyor (Breeze Dark / Zelix Aurora)..."
+for userdir in /mnt/zelix_target/home/*; do
+    if [ -d "$userdir" ]; then
+        username=$(basename "$userdir")
+        mkdir -p "$userdir/.config"
+        cp -rn /mnt/zelix_target/etc/skel/.config/* "$userdir/.config/" 2>/dev/null || true
+        arch-chroot /mnt/zelix_target chown -R "$username:$username" "/home/$username" 2>/dev/null || true
+    fi
+done
+mkdir -p /mnt/zelix_target/root/.config
+cp -rn /mnt/zelix_target/etc/skel/.config/* /mnt/zelix_target/root/.config/ 2>/dev/null || true
+
 # ZelixOS Repo Yapılandırması
 echo "ZelixOS deposu pacman.conf'a ekleniyor..."
 if ! grep -q "\\[zelixrepo\\]" /mnt/zelix_target/etc/pacman.conf 2>/dev/null; then

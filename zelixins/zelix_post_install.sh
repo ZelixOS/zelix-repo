@@ -17,6 +17,18 @@ echo "ZelixOS Aurora özel dosyaları (duvar kağıtları, ikonlar vb.) kopyalan
 # Bu komut zelixdeps hiyerarşisini hedef sisteme birebir aktarır
 cp -ar "$DEPS_PATH"/* /mnt/zelix_target/
 
+echo "Masaüstü teması ve arka plan ayarlanıyor (Breeze Dark / Zelix Aurora)..."
+for userdir in /mnt/zelix_target/home/*; do
+    if [ -d "$userdir" ]; then
+        username=$(basename "$userdir")
+        mkdir -p "$userdir/.config"
+        cp -rn /mnt/zelix_target/etc/skel/.config/* "$userdir/.config/" 2>/dev/null || true
+        arch-chroot /mnt/zelix_target chown -R "$username:$username" "/home/$username" 2>/dev/null || true
+    fi
+done
+mkdir -p /mnt/zelix_target/root/.config
+cp -rn /mnt/zelix_target/etc/skel/.config/* /mnt/zelix_target/root/.config/ 2>/dev/null || true
+
 # =================================================================
 # ZELIX REPO YAPILANDIRMASI
 # =================================================================
