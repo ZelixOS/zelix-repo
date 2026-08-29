@@ -1275,7 +1275,7 @@ class SlideshowWidget(QLabel):
         
         # Determine slides path
         # 1. Check relative to script (for dev/live)
-        dirr = os.path.dirname(os.path.abspath(__file__))
+        dirr = os.path.dirname(os.path.realpath(__file__))
         self.slides_dir = os.path.join(dirr, "slides")
         
         # 2. Check system path if relative not found
@@ -1415,8 +1415,14 @@ class InstallProgressPage(InstallerPage):
 
     def run_post_install(self):
         """Copies ZelixOS-specific files (zelixdeps) to the newly installed disk."""
-        dirr = os.path.dirname(os.path.abspath(__file__))
-        deps_path = os.path.join(dirr, "zelixdeps")
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        deps_path = os.path.join(script_dir, "zelixdeps")
+
+        if not os.path.exists(deps_path):
+            if os.path.exists("/usr/share/zelixins/zelixdeps"):
+                deps_path = "/usr/share/zelixins/zelixdeps"
+            elif os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "zelixdeps")):
+                deps_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zelixdeps")
 
         if not os.path.exists(deps_path):
             self.log_console.appendPlainText(get_text("post_warn_no_deps"))
@@ -1472,8 +1478,20 @@ if [ -d "{deps_path}" ]; then
     cp -arv "{deps_path}/." /mnt/zelix_target/
 fi
 
+# ZelixOS Repo Yapılandırması
+echo "ZelixOS deposu pacman.conf'a ekleniyor..."
+if ! grep -q "\\[zelixrepo\\]" /mnt/zelix_target/etc/pacman.conf 2>/dev/null; then
+    cat <<EOF >> /mnt/zelix_target/etc/pacman.conf
+
+[zelixrepo]
+SigLevel = Optional TrustAll
+Server = https://raw.githubusercontent.com/ZelixOS/zelix-repo/main/x86_64
+EOF
+fi
+
 echo "ZelixOS uygulamaları (zelix-hello, zelix-updater) pacman ile kuruluyor..."
 if command -v arch-chroot &> /dev/null; then
+    arch-chroot /mnt/zelix_target pacman -Sy --noconfirm || true
     arch-chroot /mnt/zelix_target pacman -S zelix-hello zelix-updater --noconfirm || true
 fi
 
@@ -1540,8 +1558,12 @@ echo "İşlem başarıyla tamamlandı!"
                 f.write(script_content)
             os.chmod(script_path, 0o755)
 
-            # Use QProcess to run pkexec so we can see the script's output in our console
-            res = subprocess.run(["pkexec", "/bin/bash", script_path], capture_output=True, text=True)
+            if os.geteuid() == 0:
+                cmd = ["/bin/bash", script_path]
+            else:
+                cmd = ["pkexec", "/bin/bash", script_path]
+
+            res = subprocess.run(cmd, capture_output=True, text=True)
             
             if res.returncode == 0:
                 self.log_console.appendPlainText(res.stdout)
