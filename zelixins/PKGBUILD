@@ -1,6 +1,6 @@
 # PKGBUILD - ZelixOS GUI Installer
 pkgname=zelixins
-pkgver=1.04.5
+pkgver=1.04.6
 pkgrel=1
 pkgdesc="Official graphical installer for ZelixOS"
 arch=('any')

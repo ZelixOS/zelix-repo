@@ -865,8 +865,8 @@ class MirrorConfigPage(InstallerPage):
         for display, _key in self.mirror_regions:
             item = QListWidgetItem(display)
             self.mirror_list.addItem(item)
-            # Default-select Turkey and United States
-            if display in ("Türkiye", "United States"):
+            # Default-select Türkiye, Germany and Worldwide
+            if display in ("Türkiye", "Germany", "Worldwide"):
                 item.setSelected(True)
 
         self.main_layout.addWidget(self.mirror_list)
@@ -1057,7 +1057,12 @@ class SummaryPage(InstallerPage):
         # --- Mirror regions ---
         selected_regions = mirror_page.get_selected_regions()
         if not selected_regions:
-            selected_regions = ["Worldwide"]
+            selected_regions = ["Türkiye", "Germany", "Worldwide"]
+        else:
+            # Ensure fast European / Worldwide fallback mirrors exist
+            for fallback in ["Germany", "Worldwide"]:
+                if fallback not in selected_regions:
+                    selected_regions.append(fallback)
         mirror_dict = {region: [] for region in selected_regions}
 
         # --- Disk info ---
