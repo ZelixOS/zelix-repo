@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, 
                              QGroupBox, QMessageBox, QPlainTextEdit, QHBoxLayout)
 from PyQt6.QtCore import Qt
@@ -39,7 +40,12 @@ class SystemTab(QWidget):
         self.btn_update = QPushButton()
         self.btn_update.setObjectName("primary_btn")
         self.btn_update.clicked.connect(self.run_update)
+        
+        self.btn_updater_gui = QPushButton()
+        self.btn_updater_gui.clicked.connect(self.launch_zelix_updater)
+        
         update_layout.addWidget(self.btn_update)
+        update_layout.addWidget(self.btn_updater_gui)
         
         layout.addWidget(self.update_group)
         
@@ -56,9 +62,13 @@ class SystemTab(QWidget):
         self.btn_optimize_mirrors = QPushButton()
         self.btn_optimize_mirrors.clicked.connect(self.run_optimize_mirrors)
         
+        self.btn_enable_flathub = QPushButton()
+        self.btn_enable_flathub.clicked.connect(self.enable_flathub)
+        
         maint_layout.addWidget(self.btn_clear_cache)
         maint_layout.addWidget(self.btn_remove_orphans)
         maint_layout.addWidget(self.btn_optimize_mirrors)
+        maint_layout.addWidget(self.btn_enable_flathub)
         
         layout.addWidget(self.maint_group)
         
@@ -74,9 +84,11 @@ class SystemTab(QWidget):
 
     def set_buttons_enabled(self, enabled):
         self.btn_update.setEnabled(enabled)
+        self.btn_updater_gui.setEnabled(enabled)
         self.btn_clear_cache.setEnabled(enabled)
         self.btn_remove_orphans.setEnabled(enabled)
         self.btn_optimize_mirrors.setEnabled(enabled)
+        self.btn_enable_flathub.setEnabled(enabled)
 
     def retranslate_ui(self):
         self.btn_back.setText(Translator.get("btn_back"))
@@ -84,14 +96,24 @@ class SystemTab(QWidget):
         self.update_group.setTitle(Translator.get("sys_title"))
         self.maint_group.setTitle(Translator.get("sys_maintenance"))
         self.btn_update.setText(Translator.get("sys_update"))
+        self.btn_updater_gui.setText(Translator.get("sys_updater_gui"))
         self.btn_clear_cache.setText(Translator.get("sys_clear_cache"))
         self.btn_remove_orphans.setText(Translator.get("sys_remove_orphans"))
         self.btn_optimize_mirrors.setText(Translator.get("sys_optimize_mirrors"))
+        self.btn_enable_flathub.setText(Translator.get("sys_enable_flathub"))
         self.lbl_terminal.setText(Translator.get("terminal_label"))
 
     def log_output(self, text):
         self.terminal_output.appendPlainText(text)
         
+    def launch_zelix_updater(self):
+        if shutil.which("zelix-updater"):
+            subprocess.Popen(["zelix-updater"])
+        elif os.path.exists("/usr/share/zelix-updater/main.py"):
+            subprocess.Popen(["python", "/usr/share/zelix-updater/main.py"])
+        else:
+            QMessageBox.information(self, "Zelix Updater", "zelix-updater is not found on this system.")
+
     def run_update(self):
         reply = QMessageBox.question(
             self,
@@ -144,6 +166,16 @@ class SystemTab(QWidget):
             
         command = ["bash", "-c", cmd_str]
         self.run_command(command, use_pkexec=True)
+
+    def enable_flathub(self):
+        self.terminal_output.clear()
+        cmd_str = (
+            "if ! command -v flatpak &>/dev/null; then pkexec pacman -S --noconfirm flatpak; fi && "
+            "flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo && "
+            "echo 'Flathub enabled successfully!'"
+        )
+        command = ["bash", "-c", cmd_str]
+        self.run_command(command, use_pkexec=False)
         
     def run_command(self, cmd_list, use_pkexec=True):
         self.set_buttons_enabled(False)
