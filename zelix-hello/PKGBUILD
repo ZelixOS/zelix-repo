@@ -31,7 +31,7 @@ package() {
     # Gerekli dosyaları kopyala
     cp -rp main.py tabs ui utils "$pkgdir/usr/share/$pkgname/"
     [ -d assets ] && cp -rp assets "$pkgdir/usr/share/$pkgname/"
-    [ -f readme.txt ] && install -m644 readme.txt "$pkgdir/usr/share/$pkgname/"
+    cp -rp readme*.txt "$pkgdir/usr/share/$pkgname/" 2>/dev/null || true
     
     install -m755 zelix-hello.desktop "$pkgdir/usr/share/applications/zelix-hello.desktop"
 
