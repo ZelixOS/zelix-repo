@@ -6,13 +6,14 @@ xdata = pkgtype=pkg
 pkgver = v1.0.0.r2.g88a6997-1
 pkgdesc = ZelixOS Hello Application
 url = https://github.com/ZelixOS/zelix-hello
-builddate = 1788086138
+builddate = 1788091673
 packager = Unknown Packager
-size = 129807
+size = 134932
 arch = any
 license = GPL
 depend = python
 depend = python-pyqt6
+depend = qt6-svg
 optdepend = rate-mirrors: for mirror optimization
 optdepend = polkit: for elevated privilege execution
 makedepend = git
