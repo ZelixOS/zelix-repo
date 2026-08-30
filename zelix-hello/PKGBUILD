@@ -7,6 +7,8 @@ arch=('any')
 url="https://github.com/ZelixOS/zelix-hello"
 license=('GPL')
 depends=('python' 'python-pyqt6')
+optdepends=('rate-mirrors: for mirror optimization'
+            'polkit: for elevated privilege execution')
 makedepends=('git')
 
 # Kaynağı doğrudan git reposuna bağlıyoruz
@@ -28,6 +30,7 @@ package() {
 
     # Gerekli dosyaları kopyala
     cp -rp main.py tabs ui utils "$pkgdir/usr/share/$pkgname/"
+    [ -f readme.txt ] && install -m644 readme.txt "$pkgdir/usr/share/$pkgname/"
     
     install -m755 zelix-hello.desktop "$pkgdir/usr/share/applications/zelix-hello.desktop"
 
