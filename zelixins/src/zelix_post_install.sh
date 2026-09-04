@@ -1,0 +1,1 @@
+/home/yasir/ZelixBuild/zelix-repo/zelixins/zelix_post_install.sh
