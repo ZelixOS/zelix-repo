@@ -4,4 +4,6 @@ __pycache__/
 *.cpython-*.pyc
 pkg/
 src/
-*.pkg.tar.zst
+zelixins/*.pkg.tar.zst
+zelix-hello/*.pkg.tar.zst
+zelix-updater/*.pkg.tar.zst
