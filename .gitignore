@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 *.old
 *.cpython-*.pyc
+pkg/
+src/
+*.pkg.tar.zst

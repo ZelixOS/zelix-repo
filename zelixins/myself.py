@@ -5,6 +5,9 @@ import json
 import uuid
 import subprocess
 import re
+import socket
+import urllib.request
+import tempfile
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
     QVBoxLayout, QStackedWidget, QFrame, QComboBox, QHBoxLayout,
@@ -30,8 +33,9 @@ LANGUAGES = {
         "step_3": "3. Ayna Seçimi",
         "step_4": "4. Disk Seçimi",
         "step_5": "5. Kullanıcılar",
-        "step_6": "6. Özet",
-        "step_7": "7. Kurulum",
+        "step_6": "6. Ekstra Paketler",
+        "step_7": "7. Özet",
+        "step_8": "8. Kurulum",
 
         # Navigation
         "back": "GERİ",
@@ -58,10 +62,14 @@ LANGUAGES = {
         "user_title": "Kullanıcılar ve Güvenlik",
         "root_pass_placeholder": "Root Şifresi Belirleyin",
         "root_pass_label": "Root Şifresi:",
+        "root_confirm_placeholder": "Root Şifresini Onaylayın",
+        "root_confirm_label": "Şifre Onay:",
         "username_placeholder": "Kullanıcı Adı",
         "username_label": "Ad:",
         "password_placeholder": "Şifre",
         "password_label": "Şifre:",
+        "user_confirm_placeholder": "Şifreyi Onaylayın",
+        "user_confirm_label": "Şifre Onay:",
         "admin_check": "Yönetici Yetkisi (sudo)",
         "add_user_btn": "KULLANICI EKLE",
         "added_users_label": "Eklenen Kullanıcılar:",
@@ -69,6 +77,8 @@ LANGUAGES = {
         "error_title": "Hata",
         "error_empty_fields": "Kullanıcı adı ve şifre boş bırakılamaz.",
         "error_duplicate_user": "Bu kullanıcı zaten eklendi.",
+        "error_passwords_mismatch": "Şifreler uyuşmuyor.",
+        "error_invalid_username": "Geçersiz kullanıcı adı. Sadece küçük harf, sayı, alt çizgi ve tire içerebilir. Bir harf veya alt çizgi ile başlamalı ve en fazla 32 karakter olmalıdır.",
         "user_validation_title": "Kullanıcı Gerekli",
         "user_validation_msg": (
             "Masaüstü ortamına (KDE/GNOME vb.) sadece Root hesabı ile giriş yapılamaz.\n\n"
@@ -80,6 +90,22 @@ LANGUAGES = {
         # MirrorConfigPage
         "mirror_title": "Ayna (Mirror) Seçimi",
         "mirror_desc": "Yükleme hızını artırmak için size en yakın bölgeleri seçin (Örn: Turkey, Germany).",
+
+        # ExtraPackagesPage
+        "extra_title": "Ekstra Paket Seçimi",
+        "extra_desc": "Kurulumdan sonra yüklenmesini istediğiniz ek programları seçin. Boş bırakabilirsiniz.",
+        "extra_cat_gaming": "🎮 Oyun",
+        "extra_cat_dev": "🛠️ Geliştirme",
+        "extra_cat_multimedia": "🎬 Multimedya",
+        "extra_cat_office": "📄 Ofis",
+        "extra_cat_internet": "🌐 İnternet",
+        "extra_cat_system": "🔧 Sistem Araçları",
+        "extra_multilib": "Multilib deposunu etkinleştir (32-bit uygulama desteği, Steam vb. için gerekli)",
+        "extra_selected_count": "{count} paket seçildi",
+        "summary_extra_pkgs": "<b>Ekstra Paketler:</b>",
+        "summary_multilib": "<b>Multilib:</b>",
+        "summary_multilib_on": "Etkin",
+        "summary_multilib_off": "Kapalı",
 
         # SummaryPage
         "summary_title": "Kurulum Özeti",
@@ -112,6 +138,12 @@ LANGUAGES = {
         "post_target_disk": "Hedef Disk: {part}",
         "post_copy_done": "-> zelixdeps klasöründeki tüm dosyalar sisteme yerleştirildi!",
         "post_copy_error": "-> Dosya kopyalama sırasında hata oluştu: {err}",
+        "post_root_partition": "Kök Bölüm: {part}",
+        "post_boot_partition": "Önyükleme Bölümü: {part}",
+        "post_source": "Kaynak: {src}",
+        "post_error_no_disk": "-> [HATA] Disk seçilmedi!",
+        "post_warn_lsblk_fail": "-> [UYARI] lsblk ile bölüm tespiti başarısız, isim tabanlı tahmine geçiliyor...",
+        "post_error_script_fail": "-> [HATA] Post-install script başarısız oldu (Kod {code})",
 
         # Worldwide fallback
         "worldwide": "Worldwide",
@@ -132,8 +164,9 @@ LANGUAGES = {
         "step_3": "3. Mirror Selection",
         "step_4": "4. Disk Selection",
         "step_5": "5. Users",
-        "step_6": "6. Summary",
-        "step_7": "7. Installation",
+        "step_6": "6. Extra Packages",
+        "step_7": "7. Summary",
+        "step_8": "8. Installation",
 
         # Navigation
         "back": "BACK",
@@ -160,10 +193,14 @@ LANGUAGES = {
         "user_title": "Users & Security",
         "root_pass_placeholder": "Set Root Password",
         "root_pass_label": "Root Password:",
+        "root_confirm_placeholder": "Confirm Root Password",
+        "root_confirm_label": "Confirm Password:",
         "username_placeholder": "Username",
         "username_label": "Name:",
         "password_placeholder": "Password",
         "password_label": "Password:",
+        "user_confirm_placeholder": "Confirm Password",
+        "user_confirm_label": "Confirm Password:",
         "admin_check": "Administrator (sudo)",
         "add_user_btn": "ADD USER",
         "added_users_label": "Added Users:",
@@ -171,6 +208,8 @@ LANGUAGES = {
         "error_title": "Error",
         "error_empty_fields": "Username and password cannot be empty.",
         "error_duplicate_user": "This user has already been added.",
+        "error_passwords_mismatch": "Passwords do not match.",
+        "error_invalid_username": "Invalid username. Use only lowercase letters, numbers, underscores, and hyphens. Must start with a letter or underscore and be max 32 characters.",
         "user_validation_title": "User Required",
         "user_validation_msg": (
             "You cannot log into a desktop environment (KDE/GNOME etc.) as root only.\n\n"
@@ -182,6 +221,22 @@ LANGUAGES = {
         # MirrorConfigPage
         "mirror_title": "Mirror Selection",
         "mirror_desc": "Select the nearest regions to increase download speed (e.g. Turkey, Germany).",
+
+        # ExtraPackagesPage
+        "extra_title": "Extra Package Selection",
+        "extra_desc": "Select additional programs to install. You can leave this empty.",
+        "extra_cat_gaming": "🎮 Gaming",
+        "extra_cat_dev": "🛠️ Development",
+        "extra_cat_multimedia": "🎬 Multimedia",
+        "extra_cat_office": "📄 Office",
+        "extra_cat_internet": "🌐 Internet",
+        "extra_cat_system": "🔧 System Tools",
+        "extra_multilib": "Enable multilib repository (32-bit app support, required for Steam etc.)",
+        "extra_selected_count": "{count} packages selected",
+        "summary_extra_pkgs": "<b>Extra Packages:</b>",
+        "summary_multilib": "<b>Multilib:</b>",
+        "summary_multilib_on": "Enabled",
+        "summary_multilib_off": "Disabled",
 
         # SummaryPage
         "summary_title": "Installation Summary",
@@ -214,6 +269,12 @@ LANGUAGES = {
         "post_target_disk": "Target Disk: {part}",
         "post_copy_done": "-> All files from zelixdeps were installed to the system!",
         "post_copy_error": "-> Error during file copy: {err}",
+        "post_root_partition": "Root Partition: {part}",
+        "post_boot_partition": "Boot Partition: {part}",
+        "post_source": "Source: {src}",
+        "post_error_no_disk": "-> [ERROR] No disk selected!",
+        "post_warn_lsblk_fail": "-> [WARNING] Partition detection with lsblk failed, falling back to name-based guessing...",
+        "post_error_script_fail": "-> [ERROR] Post-install script failed (Code {code})",
 
         # Worldwide fallback
         "worldwide": "Worldwide",
@@ -260,29 +321,33 @@ def is_uefi():
 
 
 def check_internet():
-    """Checks for internet connection by pinging a public DNS server."""
+    """Checks for internet connection using HTTP first, then ICMP as fallback.
+    
+    Some corporate/institutional networks block ICMP (ping), so we try
+    an HTTP HEAD request first, which is more universally reliable.
+    """
+    # Method 1: HTTP HEAD request (works even if ICMP is blocked)
     try:
-        # Ping Google DNS once with 2s timeout
-        subprocess.run(["ping", "-c", "1", "-W", "2", "8.8.8.8"], 
+        req = urllib.request.Request("http://archlinux.org", method="HEAD")
+        urllib.request.urlopen(req, timeout=3)
+        return True
+    except Exception:
+        pass
+
+    # Method 2: TCP socket connection to Cloudflare DNS
+    try:
+        sock = socket.create_connection(("1.1.1.1", 53), timeout=3)
+        sock.close()
+        return True
+    except Exception:
+        pass
+
+    # Method 3: ICMP ping as last resort
+    try:
+        subprocess.run(["ping", "-c", "1", "-W", "2", "8.8.8.8"],
                        capture_output=True, check=True)
         return True
-    except:
-        return False
-
-
-def is_uefi():
-    """Checks if the system is booted in UEFI mode."""
-    return os.path.isdir("/sys/firmware/efi")
-
-
-def check_internet():
-    """Checks for internet connection by pinging a public DNS server."""
-    try:
-        # Ping Google DNS once with 2s timeout
-        subprocess.run(["ping", "-c", "1", "-W", "2", "8.8.8.8"], 
-                       capture_output=True, check=True)
-        return True
-    except:
+    except Exception:
         return False
 
 
@@ -389,7 +454,10 @@ class WelcomePage(InstallerPage):
 
         # Logo
         self.logo_label = QLabel()
-        self.logo_pixmap = QPixmap("/usr/share/zelixins/icons/zelixos_logo.png")
+        dirr = os.path.dirname(os.path.abspath(__file__))
+        local_logo = os.path.join(dirr, "icons", "zelixos_logo.png")
+        logo_path = local_logo if os.path.exists(local_logo) else "/usr/share/zelixins/icons/zelixos_logo.png"
+        self.logo_pixmap = QPixmap(logo_path)
         if not self.logo_pixmap.isNull():
             scaled_logo = self.logo_pixmap.scaled(350, 350, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.logo_label.setPixmap(scaled_logo)
@@ -504,12 +572,16 @@ class SystemConfigPage(InstallerPage):
         # Keyboard Layout
         self.kb_label = QLabel()
         self.kb_combo = QComboBox()
+        self.kb_combo.setEditable(True)
+        self.kb_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.load_keymaps()
         self.form_layout.addRow(self.kb_label, self.kb_combo)
 
         # Timezone
         self.tz_label = QLabel()
         self.tz_combo = QComboBox()
+        self.tz_combo.setEditable(True)
+        self.tz_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.load_timezones()
         self.form_layout.addRow(self.tz_label, self.tz_combo)
 
@@ -706,13 +778,20 @@ class UserAccountPage(InstallerPage):
         self.title_label.setStyleSheet("font-size: 28px; color: #eff0f1; font-weight: bold; margin-bottom: 10px;")
         self.main_layout.addWidget(self.title_label)
 
-        # Root password row
+        # Root password row (with Confirm Password)
         root_layout = QHBoxLayout()
         self.root_pass_label = QLabel()
         self.root_pass = QLineEdit()
         self.root_pass.setEchoMode(QLineEdit.EchoMode.Password)
+        
+        self.root_confirm_label = QLabel()
+        self.root_confirm = QLineEdit()
+        self.root_confirm.setEchoMode(QLineEdit.EchoMode.Password)
+        
         root_layout.addWidget(self.root_pass_label)
         root_layout.addWidget(self.root_pass)
+        root_layout.addWidget(self.root_confirm_label)
+        root_layout.addWidget(self.root_confirm)
         self.main_layout.addLayout(root_layout)
 
         line = QFrame()
@@ -729,6 +808,10 @@ class UserAccountPage(InstallerPage):
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
 
+        self.password_confirm_label_w = QLabel()
+        self.password_confirm_input = QLineEdit()
+        self.password_confirm_input.setEchoMode(QLineEdit.EchoMode.Password)
+
         self.admin_check = QCheckBox()
         self.admin_check.setChecked(True)
 
@@ -738,6 +821,7 @@ class UserAccountPage(InstallerPage):
 
         user_add_layout.addRow(self.username_label_w, self.username_input)
         user_add_layout.addRow(self.password_label_w, self.password_input)
+        user_add_layout.addRow(self.password_confirm_label_w, self.password_confirm_input)
         user_add_layout.addRow("", self.admin_check)
         user_add_layout.addRow("", self.add_user_btn)
         self.main_layout.addLayout(user_add_layout)
@@ -772,10 +856,20 @@ class UserAccountPage(InstallerPage):
     def add_user(self):
         uname = self.username_input.text().strip().lower()
         upass = self.password_input.text()
+        uconfirm = self.password_confirm_input.text()
         is_admin = self.admin_check.isChecked()
 
         if not uname or not upass:
             QMessageBox.warning(self, get_text("error_title"), get_text("error_empty_fields"))
+            return
+
+        # Username validation: a-z, 0-9, _, -; start with letter/underscore; max 32 chars
+        if not re.match(r"^[a-z_][a-z0-9_-]*$", uname) or len(uname) > 32:
+            QMessageBox.warning(self, get_text("error_title"), get_text("error_invalid_username"))
+            return
+
+        if upass != uconfirm:
+            QMessageBox.warning(self, get_text("error_title"), get_text("error_passwords_mismatch"))
             return
 
         if any(u['username'] == uname for u in self.users):
@@ -788,6 +882,7 @@ class UserAccountPage(InstallerPage):
 
         self.username_input.clear()
         self.password_input.clear()
+        self.password_confirm_input.clear()
         self.username_input.setFocus()
 
     def remove_user(self):
@@ -797,6 +892,12 @@ class UserAccountPage(InstallerPage):
             self.users.pop(row)
 
     def validate_and_next(self):
+        root_pw = self.root_pass.text()
+        root_confirm_pw = self.root_confirm.text()
+        if root_pw != root_confirm_pw:
+            QMessageBox.warning(self, get_text("error_title"), get_text("error_passwords_mismatch"))
+            return
+
         if not self.users:
             QMessageBox.warning(
                 self,
@@ -810,10 +911,14 @@ class UserAccountPage(InstallerPage):
         self.title_label.setText(get_text("user_title"))
         self.root_pass_label.setText(get_text("root_pass_label"))
         self.root_pass.setPlaceholderText(get_text("root_pass_placeholder"))
+        self.root_confirm_label.setText(get_text("root_confirm_label"))
+        self.root_confirm.setPlaceholderText(get_text("root_confirm_placeholder"))
         self.username_label_w.setText(get_text("username_label"))
         self.username_input.setPlaceholderText(get_text("username_placeholder"))
         self.password_label_w.setText(get_text("password_label"))
         self.password_input.setPlaceholderText(get_text("password_placeholder"))
+        self.password_confirm_label_w.setText(get_text("user_confirm_label"))
+        self.password_confirm_input.setPlaceholderText(get_text("user_confirm_placeholder"))
         self.admin_check.setText(get_text("admin_check"))
         self.add_user_btn.setText(get_text("add_user_btn"))
         self.added_users_label.setText(get_text("added_users_label"))
@@ -865,8 +970,8 @@ class MirrorConfigPage(InstallerPage):
         for display, _key in self.mirror_regions:
             item = QListWidgetItem(display)
             self.mirror_list.addItem(item)
-            # Default-select Türkiye, Germany and Worldwide
-            if display in ("Türkiye", "Germany", "Worldwide"):
+            # Default-select Turkey and United States
+            if display in ("Türkiye", "United States"):
                 item.setSelected(True)
 
         self.main_layout.addWidget(self.mirror_list)
@@ -895,6 +1000,195 @@ class MirrorConfigPage(InstallerPage):
         self.desc_label.setText(get_text("mirror_desc"))
         self.back_btn.setText(get_text("back"))
         self.next_btn.setText(get_text("next"))
+
+
+# ─────────────────────────────────────────────
+#  Extra Packages Page
+# ─────────────────────────────────────────────
+
+class ExtraPackagesPage(InstallerPage):
+    """Allows users to select optional packages to install, grouped by category."""
+
+    # (category_lang_key, [(display_name, package_name), ...])
+    PACKAGE_CATEGORIES = [
+        ("extra_cat_gaming", [
+            ("Steam", "steam"),
+            ("Lutris", "lutris"),
+            ("Wine", "wine"),
+            ("GameMode", "gamemode"),
+            ("MangoHud", "mangohud"),
+            ("ProtonUp-Qt", "protonup-qt"),
+        ]),
+        ("extra_cat_dev", [
+            ("Visual Studio Code (OSS)", "code"),
+            ("Git", "git"),
+            ("Base-Devel", "base-devel"),
+            ("Python", "python"),
+            ("Node.js", "nodejs"),
+            ("Docker", "docker"),
+            ("GCC", "gcc"),
+        ]),
+        ("extra_cat_multimedia", [
+            ("VLC", "vlc"),
+            ("GIMP", "gimp"),
+            ("OBS Studio", "obs-studio"),
+            ("Audacity", "audacity"),
+            ("Kdenlive", "kdenlive"),
+            ("Spotify (Flatpak)", "flatpak:spotify"),
+        ]),
+        ("extra_cat_office", [
+            ("LibreOffice", "libreoffice-fresh"),
+            ("Thunderbird", "thunderbird"),
+            ("Okular (PDF)", "okular"),
+            ("Evince (PDF)", "evince"),
+        ]),
+        ("extra_cat_internet", [
+            ("Discord", "discord"),
+            ("Telegram", "telegram-desktop"),
+            ("qBittorrent", "qbittorrent"),
+            ("Chromium", "chromium"),
+        ]),
+        ("extra_cat_system", [
+            ("Timeshift", "timeshift"),
+            ("Htop", "htop"),
+            ("Btop", "btop"),
+            ("Fastfetch", "fastfetch"),
+            ("Flatpak", "flatpak"),
+            ("GParted", "gparted"),
+            ("Fish Shell", "fish"),
+        ]),
+    ]
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.title_label = QLabel()
+        self.title_label.setStyleSheet("font-size: 28px; color: #eff0f1; font-weight: bold; margin-bottom: 5px;")
+        self.main_layout.addWidget(self.title_label)
+
+        self.desc_label = QLabel()
+        self.desc_label.setStyleSheet("color: #bdc3c7; margin-bottom: 10px;")
+        self.desc_label.setWordWrap(True)
+        self.main_layout.addWidget(self.desc_label)
+
+        # Multilib checkbox (always visible, prominent)
+        self.multilib_check = QCheckBox()
+        self.multilib_check.setChecked(True)  # Enabled by default per user request
+        self.multilib_check.setStyleSheet(
+            "font-size: 14px; font-weight: bold; color: #e67e22; padding: 8px; "
+            "background-color: #1b1e20; border: 1px solid #34495e; border-radius: 6px;"
+        )
+        self.main_layout.addWidget(self.multilib_check)
+        self.main_layout.addSpacing(5)
+
+        # Selected count label
+        self.count_label = QLabel()
+        self.count_label.setStyleSheet("color: #9b59b6; font-weight: bold; font-size: 13px;")
+        self.count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.main_layout.addWidget(self.count_label)
+
+        # Scrollable area for package categories
+        from PyQt6.QtWidgets import QScrollArea, QGridLayout
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("""
+            QScrollArea { border: none; background: transparent; }
+            QScrollArea > QWidget > QWidget { background: transparent; }
+        """)
+
+        scroll_content = QWidget()
+        self.grid_layout = QGridLayout(scroll_content)
+        self.grid_layout.setSpacing(10)
+
+        self.category_checkboxes = {}  # {package_name: QCheckBox}
+
+        col = 0
+        row = 0
+        for cat_key, packages in self.PACKAGE_CATEGORIES:
+            # Category frame
+            cat_frame = QFrame()
+            cat_frame.setStyleSheet("""
+                QFrame { 
+                    background-color: #1b1e20; 
+                    border: 1px solid #31363b; 
+                    border-radius: 8px; 
+                    padding: 8px; 
+                }
+            """)
+            cat_layout = QVBoxLayout(cat_frame)
+            cat_layout.setSpacing(4)
+
+            cat_label = QLabel(get_text(cat_key))
+            cat_label.setStyleSheet("font-size: 15px; font-weight: bold; color: #9b59b6; border: none;")
+            cat_layout.addWidget(cat_label)
+            # Store reference for retranslate
+            cat_frame.setProperty("cat_key", cat_key)
+            cat_frame.setProperty("cat_label", cat_label)
+
+            for display_name, pkg_name in packages:
+                cb = QCheckBox(display_name)
+                cb.setStyleSheet("color: #bdc3c7; font-size: 13px; border: none; padding: 2px;")
+                cb.stateChanged.connect(self._update_count)
+                cat_layout.addWidget(cb)
+                self.category_checkboxes[pkg_name] = cb
+
+            self.grid_layout.addWidget(cat_frame, row, col)
+            col += 1
+            if col >= 2:
+                col = 0
+                row += 1
+
+        scroll_area.setWidget(scroll_content)
+        self.main_layout.addWidget(scroll_area)
+
+        # Navigation
+        nav_layout = QHBoxLayout()
+        self.back_btn = QPushButton()
+        self.back_btn.clicked.connect(lambda: self.main_window.prev_page())
+        self.next_btn = QPushButton()
+        self.next_btn.clicked.connect(lambda: self.main_window.next_page())
+
+        nav_layout.addWidget(self.back_btn)
+        nav_layout.addStretch()
+        nav_layout.addWidget(self.next_btn)
+        self.main_layout.addLayout(nav_layout)
+
+        self.retranslate()
+        self._update_count()
+
+    def _update_count(self):
+        count = sum(1 for cb in self.category_checkboxes.values() if cb.isChecked())
+        self.count_label.setText(get_text("extra_selected_count").format(count=count))
+
+    def get_selected_packages(self) -> list:
+        """Returns list of selected package names."""
+        selected = []
+        for pkg_name, cb in self.category_checkboxes.items():
+            if cb.isChecked():
+                selected.append(pkg_name)
+        return selected
+
+    def is_multilib_enabled(self) -> bool:
+        return self.multilib_check.isChecked()
+
+    def retranslate(self):
+        self.title_label.setText(get_text("extra_title"))
+        self.desc_label.setText(get_text("extra_desc"))
+        self.multilib_check.setText(get_text("extra_multilib"))
+        self.back_btn.setText(get_text("back"))
+        self.next_btn.setText(get_text("next"))
+        self._update_count()
+
+        # Update category labels
+        for row_idx in range(self.grid_layout.rowCount()):
+            for col_idx in range(self.grid_layout.columnCount()):
+                item = self.grid_layout.itemAtPosition(row_idx, col_idx)
+                if item and item.widget():
+                    frame = item.widget()
+                    cat_key = frame.property("cat_key")
+                    cat_label = frame.property("cat_label")
+                    if cat_key and cat_label:
+                        cat_label.setText(get_text(cat_key))
 
 
 # ─────────────────────────────────────────────
@@ -960,11 +1254,12 @@ class SummaryPage(InstallerPage):
         )
 
     def update_summary(self):
-        # Page index map: 0=Welcome, 1=System, 2=Mirror, 3=Disk, 4=User, 5=Summary, 6=Install
+        # Page index map: 0=Welcome, 1=System, 2=Mirror, 3=Disk, 4=User, 5=Extra, 6=Summary, 7=Install
         sys_page    = self.main_window.pages[1]   # SystemConfigPage
         mirror_page = self.main_window.pages[2]   # MirrorConfigPage
         disk_page   = self.main_window.pages[3]   # DiskConfigPage
         user_page   = self.main_window.pages[4]   # UserAccountPage
+        extra_page  = self.main_window.pages[5]   # ExtraPackagesPage
 
         disk_sel       = disk_page.disk_combo.currentText()
         mirrors        = ", ".join(mirror_page.get_selected_regions()) or get_text("worldwide")
@@ -999,11 +1294,28 @@ class SummaryPage(InstallerPage):
             sec_disk    = "Disk"
             sec_security = "Güvenlik"
             sec_users   = "Kullanıcılar"
+            sec_extras  = "Ekstra Paketler"
         else:
             sec_system  = "System"
             sec_disk    = "Disk"
             sec_security = "Security"
             sec_users   = "Users"
+            sec_extras  = "Extra Packages"
+
+        # Build extra packages info
+        extra_pkgs = extra_page.get_selected_packages()
+        multilib_on = extra_page.is_multilib_enabled()
+        multilib_status = (
+            f'<span style="color:#2ecc71;">&#10003; {get_text("summary_multilib_on")}</span>'
+            if multilib_on
+            else f'<span style="color:#e74c3c;">&#10007; {get_text("summary_multilib_off")}</span>'
+        )
+        if extra_pkgs:
+            extra_pkgs_display = ", ".join(extra_pkgs[:10])
+            if len(extra_pkgs) > 10:
+                extra_pkgs_display += f" (+{len(extra_pkgs) - 10})"
+        else:
+            extra_pkgs_display = "-"
 
         html = f"""
         <table width="100%" cellspacing="0" cellpadding="0">
@@ -1030,6 +1342,12 @@ class SummaryPage(InstallerPage):
 
           {self._section(sec_users)}
           {user_rows}
+
+          {self._section(sec_extras)}
+          {self._row(get_text('summary_multilib').replace('<b>','').replace('</b>',''),
+                     multilib_status)}
+          {self._row(get_text('summary_extra_pkgs').replace('<b>','').replace('</b>',''),
+                     f'<span style="color:#3498db;">{extra_pkgs_display}</span>')}
         </table>
         """
         self.summary_box.setHtml(html)
@@ -1043,9 +1361,154 @@ class SummaryPage(InstallerPage):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            self.generate_json()
-            self.main_window.next_page()          # Move to install progress page (index 6)
-            self.main_window.pages[6].start_installation()
+            if not self.generate_json():
+                return
+            self.main_window.next_page()          # Move to install progress page (index 7)
+            self.main_window.pages[7].start_installation()
+
+    @staticmethod
+    def _build_package_list(sys_page, extra_packages=None) -> list:
+        """Builds the package list dynamically based on bootloader, DE, and user selections."""
+        base_packages = [
+            "firefox", "dolphin", "konsole", "python-pyqt6", "sudo", "plymouth",
+            "qt6-svg", "qt6-5compat", "qt5-quickcontrols2", "qt5-graphicaleffects",
+            "sddm-kcm", "fastfetch"
+        ]
+
+        # Add bootloader-specific packages
+        bootloader = sys_page.selected_bootloader()
+        if bootloader == "Grub":
+            base_packages.extend(["grub", "efibootmgr", "os-prober"])
+        elif bootloader == "Refind":
+            base_packages.append("refind")
+        # Systemd-boot doesn't need extra packages
+
+        # Add greeter packages based on manual choice or DE default
+        greeter_data = sys_page.greeter_combo.currentData()
+        if greeter_data != "default":
+            if greeter_data == "lightdm-gtk-greeter":
+                base_packages.extend(["lightdm", "lightdm-gtk-greeter"])
+            else:
+                base_packages.append(greeter_data)
+        else:
+            de = sys_page.de_combo.currentText()
+            if de == "KDE Plasma":
+                base_packages.append("sddm")
+            elif de == "GNOME":
+                base_packages.append("gdm")
+            elif de in ("Xfce4", "Sway", "i3-wm"):
+                base_packages.extend(["lightdm", "lightdm-gtk-greeter"])
+            elif de in ("Hyprland", "bspwm"):
+                base_packages.append("sddm")
+
+        # Add user-selected extra packages (skip flatpak: prefixed ones)
+        if extra_packages:
+            for pkg in extra_packages:
+                if pkg.startswith("flatpak:"):
+                    # Flatpak apps will be installed post-install
+                    if "flatpak" not in base_packages:
+                        base_packages.append("flatpak")
+                else:
+                    base_packages.append(pkg)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_packages = []
+        for pkg in base_packages:
+            if pkg not in seen:
+                seen.add(pkg)
+                unique_packages.append(pkg)
+
+        return unique_packages
+
+    @staticmethod
+    def _build_custom_commands(multilib_enabled: bool, extra_packages: list) -> list:
+        """Builds post-install custom commands for archinstall.
+        
+        These commands run inside the chroot after base installation.
+        They configure ZelixOS theming (GRUB, Plymouth, SDDM, KDE colors).
+        """
+        commands = []
+
+        if multilib_enabled:
+            commands.append(
+                'sed -i "/\\[multilib\\]/,/Include/ s/^#//" /etc/pacman.conf'
+            )
+            commands.append("pacman -Sy --noconfirm")
+
+        # ── 1. Remove archiso leftover that breaks mkinitcpio ──
+        commands.append("rm -f /etc/mkinitcpio.conf.d/archiso.conf /etc/mkinitcpio.conf.d/archiso*")
+
+        # ── 2. Write mkinitcpio.conf with plymouth hook ──
+        commands.append(
+            'echo -e "MODULES=()\\nBINARIES=()\\nFILES=()\\n'
+            'HOOKS=(base udev plymouth autodetect modconf kms keyboard keymap consolefont block filesystems fsck)\\n'
+            'COMPRESSION=\\"zstd\\"" > /etc/mkinitcpio.conf'
+        )
+
+        # ── 3. Configure Plymouth ──
+        commands.append("mkdir -p /etc/plymouth")
+        commands.append(
+            'echo -e "[Daemon]\\nTheme=zelix-aurora\\nShowDelay=0\\nDeviceTimeout=8" > /etc/plymouth/plymouthd.conf'
+        )
+        commands.append("plymouth-set-default-theme -R zelix-aurora || mkinitcpio -P || true")
+
+        # ── 4. Configure GRUB theme & quiet splash ──
+        commands.append("mkdir -p /boot/grub/themes/zelix-aurora /usr/share/grub/themes/zelix-aurora")
+        commands.append("cp -r /usr/share/grub/themes/zelix-aurora/* /boot/grub/themes/zelix-aurora/ 2>/dev/null || true")
+        commands.append(
+            'sed -i \'s/GRUB_DISTRIBUTOR="Arch"/GRUB_DISTRIBUTOR="ZelixOS"/g\' /etc/default/grub 2>/dev/null || true'
+        )
+        commands.append(
+            "grep -q 'GRUB_THEME' /etc/default/grub && "
+            'sed -i \'s|^#*GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/zelix-aurora/theme.txt"|\' /etc/default/grub || '
+            'echo \'GRUB_THEME="/usr/share/grub/themes/zelix-aurora/theme.txt"\' >> /etc/default/grub'
+        )
+        commands.append(
+            "grep -q 'GRUB_CMDLINE_LINUX_DEFAULT' /etc/default/grub && "
+            'sed -i \'s/GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3"/\' /etc/default/grub || '
+            'echo \'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3"\' >> /etc/default/grub'
+        )
+        commands.append(
+            "grep -q 'GRUB_TERMINAL_OUTPUT' /etc/default/grub && "
+            'sed -i \'s/GRUB_TERMINAL_OUTPUT=".*"/GRUB_TERMINAL_OUTPUT="gfxterm"/\' /etc/default/grub || '
+            'echo \'GRUB_TERMINAL_OUTPUT="gfxterm"\' >> /etc/default/grub'
+        )
+        commands.append("grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true")
+
+        # ── 5. Configure SDDM theme ──
+        commands.append("mkdir -p /etc/sddm.conf.d")
+        commands.append(
+            'echo -e "[Theme]\\nCurrent=zelix-aurora\\nCursorTheme=breeze_cursors" > /etc/sddm.conf'
+        )
+        commands.append(
+            'echo -e "[Theme]\\nCurrent=zelix-aurora\\nCursorTheme=breeze_cursors" > /etc/sddm.conf.d/zelix.conf'
+        )
+        commands.append("systemctl enable sddm.service 2>/dev/null || true")
+        commands.append("systemctl set-default graphical.target 2>/dev/null || true")
+
+        # ── 6. Apply KDE dark theme to all users via skel ──
+        commands.append(
+            'for d in /home/*/; do '
+            'u=$(basename "$d"); '
+            'mkdir -p "$d/.config"; '
+            'cp -rn /etc/skel/.config/* "$d/.config/" 2>/dev/null; '
+            'chown -R "$u:$u" "$d" 2>/dev/null; '
+            'done || true'
+        )
+
+        # Install flatpak apps if any were selected
+        flatpak_apps = [pkg.split(":", 1)[1] for pkg in extra_packages if pkg.startswith("flatpak:")]
+        if flatpak_apps:
+            commands.append("flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo")
+            for app_name in flatpak_apps:
+                flatpak_ids = {
+                    "spotify": "com.spotify.Client",
+                }
+                flatpak_id = flatpak_ids.get(app_name, app_name)
+                commands.append(f"flatpak install -y flathub {flatpak_id}")
+
+        return commands
 
     def generate_json(self):
         """Generates archinstall 4.x-compatible config and creds JSON files."""
@@ -1053,16 +1516,16 @@ class SummaryPage(InstallerPage):
         mirror_page = self.main_window.pages[2]
         disk_page   = self.main_window.pages[3]
         user_page   = self.main_window.pages[4]
+        extra_page  = self.main_window.pages[5]
+
+        # --- Extra packages ---
+        extra_packages = extra_page.get_selected_packages()
+        multilib_enabled = extra_page.is_multilib_enabled()
 
         # --- Mirror regions ---
         selected_regions = mirror_page.get_selected_regions()
         if not selected_regions:
-            selected_regions = ["Türkiye", "Germany", "Worldwide"]
-        else:
-            # Ensure fast European / Worldwide fallback mirrors exist
-            for fallback in ["Germany", "Worldwide"]:
-                if fallback not in selected_regions:
-                    selected_regions.append(fallback)
+            selected_regions = ["Worldwide"]
         mirror_dict = {region: [] for region in selected_regions}
 
         # --- Disk info ---
@@ -1199,8 +1662,10 @@ class SummaryPage(InstallerPage):
             "network_config": {"type": "nm"},
 
             "ntp": True,
-            "packages": ["firefox", "dolphin", "konsole", "python-pyqt6"],
+            "packages": self._build_package_list(sys_page, extra_packages),
             "parallel_downloads": 0,
+
+            "additional_repositories": ["multilib"] if multilib_enabled else [],
 
             "profile_config": {
                 "gfx_driver": None,
@@ -1216,7 +1681,7 @@ class SummaryPage(InstallerPage):
             },
 
             "services": [],
-            "custom_commands": [],
+            "custom_commands": self._build_custom_commands(multilib_enabled, extra_packages),
             "swap": {"enabled": True, "algorithm": "zstd"},
             "timezone": sys_page.tz_combo.currentText(),
         }
@@ -1245,82 +1710,45 @@ class SummaryPage(InstallerPage):
         if root_pw:
             arch_creds["!root-password"] = root_pw
 
-        # --- Write to disk ---
-        config_path = "/tmp/zelix_config.json"
-        creds_path  = "/tmp/zelix_creds.json"
+        # Clean up any old temp config files before generating new ones
+        if hasattr(self.main_window, "cleanup_install_files"):
+            self.main_window.cleanup_install_files()
 
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(arch_config, f, indent=4, ensure_ascii=False)
+        config_path = None
+        creds_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, mode="w", encoding="utf-8",
+                                              prefix="zelix_config_", suffix=".json") as config_file:
+                config_path = config_file.name
+                json.dump(arch_config, config_file, indent=4, ensure_ascii=False)
 
-        with open(creds_path, "w", encoding="utf-8") as f:
-            json.dump(arch_creds, f, indent=4, ensure_ascii=False)
+            with tempfile.NamedTemporaryFile(delete=False, mode="w", encoding="utf-8",
+                                              prefix="zelix_creds_", suffix=".json") as creds_file:
+                creds_path = creds_file.name
+                json.dump(arch_creds, creds_file, indent=4, ensure_ascii=False)
+
+            self.main_window.install_config_path = config_path
+            self.main_window.install_creds_path = creds_path
+            return True
+        except Exception as e:
+            if config_path and os.path.exists(config_path):
+                try:
+                    os.remove(config_path)
+                except Exception:
+                    pass
+            if creds_path and os.path.exists(creds_path):
+                try:
+                    os.remove(creds_path)
+                except Exception:
+                    pass
+            QMessageBox.critical(self, "Error", f"Install config generation failed:\n{e}")
+            return False
 
     def retranslate(self):
         self.title_label.setText(get_text("summary_title"))
         self.finish_btn.setText(get_text("start_install_btn"))
         self.back_btn.setText(get_text("back"))
         self.next_btn.setText(get_text("next")) if hasattr(self, "next_btn") else None
-
-
-# ─────────────────────────────────────────────
-#  Slideshow Widget
-# ─────────────────────────────────────────────
-
-class SlideshowWidget(QLabel):
-    """A widget that displays a cycling slideshow of images."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setStyleSheet("border: 2px solid #31363b; border-radius: 10px; background: #000;")
-        # Set a reasonable size for the slideshow area
-        self.setFixedSize(700, 380)
-        
-        self.slides = []
-        self.current_slide = 0
-        
-        # Determine slides path
-        # 1. Check relative to script (for dev/live)
-        dirr = os.path.dirname(os.path.realpath(__file__))
-        self.slides_dir = os.path.join(dirr, "slides")
-        
-        # 2. Check system path if relative not found
-        if not os.path.exists(self.slides_dir):
-            self.slides_dir = "/usr/share/zelixins/slides"
-            
-        self.load_slides()
-        
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.next_slide)
-        self.timer.start(8000) # 8 seconds per slide
-        
-        self.show_slide()
-
-    def load_slides(self):
-        if os.path.exists(self.slides_dir):
-            try:
-                files = sorted([f for f in os.listdir(self.slides_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))])
-                self.slides = [os.path.join(self.slides_dir, f) for f in files]
-            except Exception:
-                self.slides = []
-
-    def next_slide(self):
-        if not self.slides:
-            return
-        self.current_slide = (self.current_slide + 1) % len(self.slides)
-        self.show_slide()
-
-    def show_slide(self):
-        if not self.slides:
-            self.setText("ZelixOS Aurora")
-            self.setStyleSheet("font-size: 24px; color: #9b59b6; border: 2px solid #31363b; border-radius: 10px; background: #1b1e20;")
-            return
-        
-        pixmap = QPixmap(self.slides[self.current_slide])
-        if not pixmap.isNull():
-            scaled_pixmap = pixmap.scaled(self.width() - 4, self.height() - 4, 
-                                         Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
-                                         Qt.TransformationMode.SmoothTransformation)
-            self.setPixmap(scaled_pixmap)
 
 
 # ─────────────────────────────────────────────
@@ -1335,18 +1763,12 @@ class InstallProgressPage(InstallerPage):
 
         self.title_label = QLabel()
         self.title_label.setStyleSheet(
-            "font-size: 28px; font-weight: bold; color: #f39c12; margin-bottom: 5px;"
+            "font-size: 28px; font-weight: bold; color: #f39c12; margin-bottom: 10px;"
         )
         self.main_layout.addWidget(self.title_label)
 
-        # Slideshow
-        self.slideshow = SlideshowWidget(self)
-        self.main_layout.addWidget(self.slideshow, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addSpacing(10)
-
         self.log_console = QPlainTextEdit()
         self.log_console.setReadOnly(True)
-        self.log_console.setFixedHeight(180) # Shrink terminal
         self.log_console.setStyleSheet("""
             background-color: #0c0c0c;
             color: #00ff00;
@@ -1354,7 +1776,6 @@ class InstallProgressPage(InstallerPage):
             font-size: 13px;
             padding: 10px;
             border-radius: 5px;
-            border: 1px solid #31363b;
         """)
         self.main_layout.addWidget(self.log_console)
 
@@ -1376,8 +1797,12 @@ class InstallProgressPage(InstallerPage):
         self.retranslate()
 
     def start_installation(self):
-        config_path = "/tmp/zelix_config.json"
-        creds_path  = "/tmp/zelix_creds.json"
+        config_path = getattr(self.main_window, "install_config_path", None)
+        creds_path = getattr(self.main_window, "install_creds_path", None)
+
+        if not config_path or not creds_path:
+            QMessageBox.critical(self, "Error", "Installation config files could not be found.")
+            return
 
         self.log_console.clear()
         self.log_console.appendPlainText(get_text("install_log_header"))
@@ -1418,98 +1843,130 @@ class InstallProgressPage(InstallerPage):
                 get_text("install_fail_msg").format(code=exit_code)
             )
 
+        if hasattr(self.main_window, "cleanup_install_files"):
+            self.main_window.cleanup_install_files()
+
     def run_post_install(self):
         """Copies ZelixOS-specific files (zelixdeps) to the newly installed disk."""
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        deps_path = os.path.join(script_dir, "zelixdeps")
-
-        if not os.path.exists(deps_path):
-            if os.path.exists("/usr/share/zelixins/zelixdeps"):
-                deps_path = "/usr/share/zelixins/zelixdeps"
-            elif os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "zelixdeps")):
-                deps_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zelixdeps")
+        dirr = os.path.dirname(os.path.abspath(__file__))
+        deps_path = os.path.join(dirr, "zelixdeps")
 
         if not os.path.exists(deps_path):
             self.log_console.appendPlainText(get_text("post_warn_no_deps"))
             return
 
-        # Determine root partition path
+        # Determine root and boot partition paths dynamically using lsblk
         disk_page = self.main_window.pages[3]
         selected_disk_text = disk_page.disk_combo.currentText()
         if not selected_disk_text:
-            self.log_console.appendPlainText("-> [HATA] Disk seçilmedi!")
+            self.log_console.appendPlainText(get_text("post_error_no_disk"))
             return
             
         selected_disk = selected_disk_text.split(" ")[0]
 
-        # Improved partition detection logic
-        # /dev/sda  → /dev/sda2 (root), /dev/sda1 (boot)
-        # /dev/nvme0n1 → /dev/nvme0n1p2 (root), /dev/nvme0n1p1 (boot)
-        if any(x in selected_disk for x in ("nvme", "mmcblk", "loop")):
-            root_part = f"{selected_disk}p2"
-            boot_part = f"{selected_disk}p1"
-        else:
-            root_part = f"{selected_disk}2"
-            boot_part = f"{selected_disk}1"
+        # Dynamic partition detection using lsblk + PARTTYPE
+        # Instead of guessing /dev/sdaX or /dev/nvme0n1pX, we query the 
+        # actual partition table to find boot (ESP/fat32) and root (ext4) partitions.
+        root_part = None
+        boot_part = None
+        try:
+            result = subprocess.run(
+                ['lsblk', '-n', '-o', 'NAME,FSTYPE,PARTFLAGS,MOUNTPOINT', '-r', selected_disk],
+                capture_output=True, text=True, check=True
+            )
+            for line in result.stdout.strip().split('\n'):
+                cols = line.split()
+                if len(cols) < 2:
+                    continue
+                part_name = f"/dev/{cols[0]}"
+                fstype = cols[1] if len(cols) > 1 else ""
+                
+                # Skip the disk device itself
+                if part_name == selected_disk:
+                    continue
+                
+                if fstype in ("vfat", "fat32") and boot_part is None:
+                    boot_part = part_name
+                elif fstype in ("ext4", "btrfs", "xfs", "f2fs") and root_part is None:
+                    root_part = part_name
+        except Exception:
+            pass
+
+        # Fallback to name-based guessing if lsblk detection failed
+        if not root_part or not boot_part:
+            self.log_console.appendPlainText(get_text("post_warn_lsblk_fail"))
+            if any(x in selected_disk for x in ("nvme", "mmcblk", "loop")):
+                if not boot_part:
+                    boot_part = f"{selected_disk}p1"
+                if not root_part:
+                    root_part = f"{selected_disk}p2"
+            else:
+                if not boot_part:
+                    boot_part = f"{selected_disk}1"
+                if not root_part:
+                    root_part = f"{selected_disk}2"
 
         self.log_console.appendPlainText(get_text("post_copy_header"))
-        self.log_console.appendPlainText(f"Kök Bölüm: {root_part}")
-        self.log_console.appendPlainText(f"Önyükleme Bölümü: {boot_part}")
-        self.log_console.appendPlainText(f"Kaynak: {deps_path}")
+        self.log_console.appendPlainText(get_text("post_root_partition").format(part=root_part))
+        self.log_console.appendPlainText(get_text("post_boot_partition").format(part=boot_part))
+        self.log_console.appendPlainText(get_text("post_source").format(src=deps_path))
         QApplication.processEvents()
 
         # Bundle all privileged commands into one bash script to avoid
         # multiple pkexec password prompts. Added bootloader branding.
+        # Includes a cleanup trap for safe umount on any failure.
         script_content = f"""#!/bin/bash
+
+# Cleanup trap — ensures partitions are always unmounted on exit
+BOOT_MOUNTED=0
+cleanup() {{
+    echo "Temizlik yapılıyor..."
+    [ "$BOOT_MOUNTED" == "1" ] && umount /mnt/zelix_target/boot 2>/dev/null
+    mountpoint -q /mnt/zelix_target && umount /mnt/zelix_target 2>/dev/null
+}}
+trap cleanup EXIT
+
 set -e
+
+# Log file for debugging
+LOGFILE="/tmp/zelixos_postinstall.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+
 echo "Hedef dizinler hazırlanıyor..."
 mkdir -p /mnt/zelix_target
 
-echo "Bölümler bağlanıyor..."
+echo "Kök bölüm bağlanıyor: {root_part}"
 if ! mount {root_part} /mnt/zelix_target; then
-    echo "HATA: Kök bölüm bağlanamadı!"
+    echo "HATA: Kök bölüm ({root_part}) bağlanamadı!"
+    exit 1
+fi
+
+# Handle BTRFS subvolume layout if created by archinstall
+if [ -d "/mnt/zelix_target/@/etc" ]; then
+    echo "BTRFS @ alt hacmi algılandı, kök alt hacim bağlanıyor..."
+    umount /mnt/zelix_target
+    mount -o subvol=@ {root_part} /mnt/zelix_target
+fi
+
+# Verify mount succeeded by checking for essential directories
+if [ ! -d "/mnt/zelix_target/etc" ] && [ ! -d "/mnt/zelix_target/usr" ]; then
+    echo "HATA: Kök bölüm bağlandı ama boş görünüyor. Kurulum başarısız olmuş olabilir."
     exit 1
 fi
 
 mkdir -p /mnt/zelix_target/boot
-if ! mount {boot_part} /mnt/zelix_target/boot; then
-    echo "UYARI: Önyükleme bölümü bağlanamadı, önyükleyici isimlendirmesi atlanıyor."
-else
+echo "Önyükleme bölümü bağlanıyor: {boot_part}"
+if mount {boot_part} /mnt/zelix_target/boot; then
     BOOT_MOUNTED=1
+else
+    echo "UYARI: Önyükleme bölümü bağlanamadı, önyükleyici isimlendirmesi atlanıyor."
 fi
 
 echo "Dosyalar kopyalanıyor..."
-if [ -d "{deps_path}" ]; then
+if [ -d "{deps_path}" ] && [ "$(ls -A {deps_path})" ]; then
     cp -arv "{deps_path}/." /mnt/zelix_target/
-fi
-
-echo "Masaüstü teması ve arka plan ayarlanıyor (Breeze Dark / Zelix Aurora)..."
-for userdir in /mnt/zelix_target/home/*; do
-    if [ -d "$userdir" ]; then
-        username=$(basename "$userdir")
-        mkdir -p "$userdir/.config"
-        cp -rn /mnt/zelix_target/etc/skel/.config/* "$userdir/.config/" 2>/dev/null || true
-        arch-chroot /mnt/zelix_target chown -R "$username:$username" "/home/$username" 2>/dev/null || true
-    fi
-done
-mkdir -p /mnt/zelix_target/root/.config
-cp -rn /mnt/zelix_target/etc/skel/.config/* /mnt/zelix_target/root/.config/ 2>/dev/null || true
-
-# ZelixOS Repo Yapılandırması
-echo "ZelixOS deposu pacman.conf'a ekleniyor..."
-if ! grep -q "\\[zelixrepo\\]" /mnt/zelix_target/etc/pacman.conf 2>/dev/null; then
-    cat <<EOF >> /mnt/zelix_target/etc/pacman.conf
-
-[zelixrepo]
-SigLevel = Optional TrustAll
-Server = https://raw.githubusercontent.com/ZelixOS/zelix-repo/main/x86_64
-EOF
-fi
-
-echo "ZelixOS uygulamaları (zelix-hello, zelix-updater) pacman ile kuruluyor..."
-if command -v arch-chroot &> /dev/null; then
-    arch-chroot /mnt/zelix_target pacman -Sy --noconfirm || true
-    arch-chroot /mnt/zelix_target pacman -S zelix-hello zelix-updater --noconfirm || true
+else
+    echo "UYARI: zelixdeps klasörü boş veya erişilemez, atlanıyor."
 fi
 
 echo "ZelixOS Branding ayarlanıyor..."
@@ -1548,45 +2005,120 @@ if [ "$BOOT_MOUNTED" == "1" ]; then
         echo "systemd-boot girişleri düzenleniyor..."
         sed -i 's/Arch Linux/ZelixOS/g' /mnt/zelix_target/boot/loader/entries/*.conf 2>/dev/null || true
     fi
-    
-    # 2. GRUB
-    if [ -f "/mnt/zelix_target/etc/default/grub" ]; then
-        echo "GRUB yapılandırması güncelleniyor..."
-        sed -i 's/GRUB_DISTRIBUTOR="Arch"/GRUB_DISTRIBUTOR="ZelixOS"/g' /mnt/zelix_target/etc/default/grub
-        # Run grub-mkconfig inside chroot
-        if command -v arch-chroot &> /dev/null; then
-            arch-chroot /mnt/zelix_target grub-mkconfig -o /boot/grub/grub.cfg || true
-        fi
+fi
+
+# Always enable multilib repository (ZelixOS default)
+echo "Multilib deposu etkinleştiriliyor..."
+if [ -f "/mnt/zelix_target/etc/pacman.conf" ]; then
+    sed -i '/\\[multilib\\]/,/Include/ s/^#//' /mnt/zelix_target/etc/pacman.conf
+    echo "-> Multilib deposu etkinleştirildi."
+fi
+
+# Add zelixrepo to the installed system
+echo "ZelixRepo ekleniyor..."
+if [ -f "/mnt/zelix_target/etc/pacman.conf" ]; then
+    if ! grep -q "\\[zelixrepo\\]" /mnt/zelix_target/etc/pacman.conf; then
+        cat <<EOF >> /mnt/zelix_target/etc/pacman.conf
+
+[zelixrepo]
+SigLevel = Optional TrustAll
+Server = https://raw.githubusercontent.com/ZelixOS/zelix-repo/main/x86_64
+EOF
+        echo "-> ZelixRepo başarıyla eklendi."
+    else
+        echo "-> ZelixRepo zaten mevcut."
     fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════
+# ZelixOS Görsel Tema Yapılandırması (GRUB, Plymouth, SDDM, KDE)
+# arch-chroot ile hedef sistemin içinde çalıştırılır
+# ═══════════════════════════════════════════════════════════════════
+if command -v arch-chroot &>/dev/null; then
+    echo "ZelixOS görsel temaları yapılandırılıyor (GRUB, Plymouth, SDDM, KDE)..."
+
+    # 1. archiso kalıntılarını temizle
+    arch-chroot /mnt/zelix_target rm -f /etc/mkinitcpio.conf.d/archiso.conf /etc/mkinitcpio.conf.d/archiso* 2>/dev/null || true
+
+    # 2. mkinitcpio.conf — plymouth hook ile yaz
+    cat <<'MKCEOF' > /mnt/zelix_target/etc/mkinitcpio.conf
+MODULES=()
+BINARIES=()
+FILES=()
+HOOKS=(base udev plymouth autodetect modconf kms keyboard keymap consolefont block filesystems fsck)
+COMPRESSION="zstd"
+MKCEOF
+
+    # 3. Plymouth yapılandırması
+    mkdir -p /mnt/zelix_target/etc/plymouth
+    cat <<'PLYEOF' > /mnt/zelix_target/etc/plymouth/plymouthd.conf
+[Daemon]
+Theme=zelix-aurora
+ShowDelay=0
+DeviceTimeout=8
+PLYEOF
+    arch-chroot /mnt/zelix_target plymouth-set-default-theme -R zelix-aurora 2>/dev/null || arch-chroot /mnt/zelix_target mkinitcpio -P 2>/dev/null || true
+
+    # 4. GRUB tema ve quiet splash yapılandırması
+    if [ -f "/mnt/zelix_target/etc/default/grub" ]; then
+        sed -i 's/GRUB_DISTRIBUTOR="Arch"/GRUB_DISTRIBUTOR="ZelixOS"/g' /mnt/zelix_target/etc/default/grub
+        sed -i 's|^#*GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/zelix-aurora/theme.txt"|' /mnt/zelix_target/etc/default/grub
+        grep -q "GRUB_THEME" /mnt/zelix_target/etc/default/grub || echo 'GRUB_THEME="/usr/share/grub/themes/zelix-aurora/theme.txt"' >> /mnt/zelix_target/etc/default/grub
+        sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3"/' /mnt/zelix_target/etc/default/grub
+        sed -i 's/GRUB_TERMINAL_OUTPUT=".*"/GRUB_TERMINAL_OUTPUT="gfxterm"/' /mnt/zelix_target/etc/default/grub
+        grep -q "GRUB_TERMINAL_OUTPUT" /mnt/zelix_target/etc/default/grub || echo 'GRUB_TERMINAL_OUTPUT="gfxterm"' >> /mnt/zelix_target/etc/default/grub
+        arch-chroot /mnt/zelix_target grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+    fi
+
+    # 5. SDDM tema yapılandırması
+    mkdir -p /mnt/zelix_target/etc/sddm.conf.d
+    cat <<'SDDMEOF' > /mnt/zelix_target/etc/sddm.conf
+[Theme]
+Current=zelix-aurora
+CursorTheme=breeze_cursors
+SDDMEOF
+    cat <<'SDDMEOF2' > /mnt/zelix_target/etc/sddm.conf.d/zelix.conf
+[Theme]
+Current=zelix-aurora
+CursorTheme=breeze_cursors
+SDDMEOF2
+    arch-chroot /mnt/zelix_target systemctl enable sddm.service 2>/dev/null || true
+    arch-chroot /mnt/zelix_target systemctl set-default graphical.target 2>/dev/null || true
+
+    # 6. KDE koyu tema — skel'den tüm kullanıcılara kopyala
+    for user_home in /mnt/zelix_target/home/*/; do
+        if [ -d "$user_home" ]; then
+            user_name=$(basename "$user_home")
+            mkdir -p "$user_home/.config"
+            cp -rn /mnt/zelix_target/etc/skel/.config/* "$user_home/.config/" 2>/dev/null || true
+            arch-chroot /mnt/zelix_target chown -R "$user_name:$user_name" "/home/$user_name" 2>/dev/null || true
+        fi
+    done
 fi
 
 echo "Senkronize ediliyor..."
 sync
 
-echo "Bölümler ayrılıyor..."
-[ "$BOOT_MOUNTED" == "1" ] && umount /mnt/zelix_target/boot
-umount /mnt/zelix_target
 echo "İşlem başarıyla tamamlandı!"
+# cleanup trap handles umount automatically
 """
 
-        script_path = "/tmp/zelix_post_install.sh"
+        script_path = None
         try:
-            with open(script_path, "w") as f:
+            with tempfile.NamedTemporaryFile(delete=False, mode="w", encoding="utf-8",
+                                              prefix="zelix_post_install_", suffix=".sh") as f:
+                script_path = f.name
                 f.write(script_content)
             os.chmod(script_path, 0o755)
 
-            if os.geteuid() == 0:
-                cmd = ["/bin/bash", script_path]
-            else:
-                cmd = ["pkexec", "/bin/bash", script_path]
-
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            # Use QProcess to run pkexec so we can see the script's output in our console
+            res = subprocess.run(["pkexec", "/bin/bash", script_path], capture_output=True, text=True)
             
             if res.returncode == 0:
                 self.log_console.appendPlainText(res.stdout)
                 self.log_console.appendPlainText(get_text("post_copy_done"))
             else:
-                self.log_console.appendPlainText(f"-> [HATA] Post-install script başarısız oldu (Kod {res.returncode})")
+                self.log_console.appendPlainText(get_text("post_error_script_fail").format(code=res.returncode))
                 self.log_console.appendPlainText(res.stderr)
                 self.log_console.appendPlainText(res.stdout)
         except Exception as e:
@@ -1610,8 +2142,9 @@ echo "İşlem başarıyla tamamlandı!"
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ZelixOS Installer v1.04")
-        self.setFixedSize(1024, 720)
+        self.setWindowTitle("ZelixOS Installer v1.0.5")
+        self.setMinimumSize(800, 600)
+        self.resize(1024, 720)
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -1632,7 +2165,12 @@ class MainWindow(QWidget):
         side_logo_label = QLabel()
         side_logo_label.setFixedSize(32, 32)
         side_logo_label.setStyleSheet("border: none; background: transparent;")
-        side_logo_pixmap = QPixmap("/usr/share/zelixins/icons/zelixos_logo.png")
+        
+        dirr = os.path.dirname(os.path.abspath(__file__))
+        local_logo = os.path.join(dirr, "icons", "zelixos_logo.png")
+        logo_path = local_logo if os.path.exists(local_logo) else "/usr/share/zelixins/icons/zelixos_logo.png"
+        
+        side_logo_pixmap = QPixmap(logo_path)
         if not side_logo_pixmap.isNull():
             scaled_side_logo = side_logo_pixmap.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             side_logo_label.setPixmap(scaled_side_logo)
@@ -1648,7 +2186,7 @@ class MainWindow(QWidget):
         sidebar_layout.addSpacing(40)
 
         # Step labels — refreshed by retranslate_all()
-        self.step_labels = [QLabel() for _ in range(7)]
+        self.step_labels = [QLabel() for _ in range(8)]
         for lbl in self.step_labels:
             sidebar_layout.addWidget(lbl)
 
@@ -1668,8 +2206,9 @@ class MainWindow(QWidget):
             MirrorConfigPage(self),     # 2
             DiskConfigPage(self),       # 3
             UserAccountPage(self),      # 4
-            SummaryPage(self),          # 5
-            InstallProgressPage(self),  # 6
+            ExtraPackagesPage(self),    # 5
+            SummaryPage(self),          # 6
+            InstallProgressPage(self),  # 7
         ]
         for page in self.pages:
             self.stacked_widget.addWidget(page)
@@ -1677,6 +2216,9 @@ class MainWindow(QWidget):
         content_layout.addWidget(self.stacked_widget)
         main_layout.addWidget(sidebar)
         main_layout.addWidget(content_frame)
+
+        self.install_config_path = None
+        self.install_creds_path = None
 
         self.setStyleSheet("""
             QWidget {
@@ -1707,9 +2249,27 @@ class MainWindow(QWidget):
 
         self.retranslate_all()
 
+    def cleanup_install_files(self):
+        for attr in ("install_config_path", "install_creds_path"):
+            path = getattr(self, attr, None)
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+            if hasattr(self, attr):
+                delattr(self, attr)
+
+        self.install_config_path = None
+        self.install_creds_path = None
+
+    def closeEvent(self, event):
+        self.cleanup_install_files()
+        event.accept()
+
     def retranslate_all(self):
         """Re-applies all translatable strings to every page and sidebar."""
-        step_keys = ["step_1", "step_2", "step_3", "step_4", "step_5", "step_6", "step_7"]
+        step_keys = ["step_1", "step_2", "step_3", "step_4", "step_5", "step_6", "step_7", "step_8"]
         for lbl, key in zip(self.step_labels, step_keys):
             lbl.setText(get_text(key))
 
@@ -1721,15 +2281,15 @@ class MainWindow(QWidget):
     def next_page(self):
         idx = self.stacked_widget.currentIndex()
         if idx < self.stacked_widget.count() - 1:
-            if idx + 1 == 5:  # Summary page is at index 5
-                self.pages[5].update_summary()
+            if idx + 1 == 6:  # Summary page is at index 6
+                self.pages[6].update_summary()
             self.stacked_widget.setCurrentIndex(idx + 1)
             self.update_sidebar()
 
     def prev_page(self):
         idx = self.stacked_widget.currentIndex()
-        # Block going back once installation has started (page 6)
-        if idx > 0 and idx != 6:
+        # Block going back once installation has started (page 7)
+        if idx > 0 and idx != 7:
             self.stacked_widget.setCurrentIndex(idx - 1)
             self.update_sidebar()
 
@@ -1751,8 +2311,6 @@ class MainWindow(QWidget):
 
 
 if __name__ == "__main__":
-    if os.geteuid() != 0:
-        os.execvp("sudo", ["sudo", "-E", sys.executable] + sys.argv)
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

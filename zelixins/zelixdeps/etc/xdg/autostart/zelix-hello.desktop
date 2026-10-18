@@ -3,7 +3,7 @@
 Type=Application
 Name=ZelixOS Hello
 Comment=ZelixOS Hello Program
-Exec=python /usr/share/zelix-hello/main.py
+Exec=zelix-hello
 Icon=/usr/share/zelix/zelix-icon.png
 Terminal=false
 Categories=System;Installer;
