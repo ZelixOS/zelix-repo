@@ -1,0 +1,31 @@
+# PKGBUILD - Paru AUR Helper (Binary)
+pkgname=paru
+pkgver=2.1.0
+pkgrel=1
+pkgdesc="Feature packed AUR helper"
+arch=('x86_64')
+url="https://github.com/morganamilo/paru"
+license=('GPL-3.0-or-later')
+depends=('git' 'pacman' 'libalpm.so>=14')
+optdepends=('bat: colored pkgbuild printing'
+            'devtools: build in chroot and downloading pkgbuilds')
+provides=('paru')
+conflicts=()
+backup=('etc/paru.conf')
+
+source=("https://github.com/Morganamilo/paru/releases/download/v${pkgver}/paru-v${pkgver}-x86_64.tar.zst")
+sha256sums=('28ef88736080e7e96e569f7adf10517ef8310a68b528e7f34c795287d7271880')
+
+package() {
+    cd "$srcdir/"
+
+    install -Dm755 paru "$pkgdir/usr/bin/paru"
+    install -Dm644 paru.conf "$pkgdir/etc/paru.conf"
+
+    install -Dm644 man/paru.8 "$pkgdir/usr/share/man/man8/paru.8"
+    install -Dm644 man/paru.conf.5 "$pkgdir/usr/share/man/man5/paru.conf.5"
+
+    install -Dm644 completions/bash "${pkgdir}/usr/share/bash-completion/completions/paru"
+    install -Dm644 completions/fish "${pkgdir}/usr/share/fish/vendor_completions.d/paru.fish" 2>/dev/null || true
+    install -Dm644 completions/zsh "${pkgdir}/usr/share/zsh/site-functions/_paru" 2>/dev/null || true
+}

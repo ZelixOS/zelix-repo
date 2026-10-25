@@ -7,3 +7,5 @@ src/
 zelixins/*.pkg.tar.zst
 zelix-hello/*.pkg.tar.zst
 zelix-updater/*.pkg.tar.zst
+paru/*.pkg.tar.zst
+paru/*.tar.zst
