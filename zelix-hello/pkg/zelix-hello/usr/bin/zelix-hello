@@ -1,2 +1,0 @@
-#!/bin/bash
-exec python /usr/share/zelix-hello/main.py "$@"
