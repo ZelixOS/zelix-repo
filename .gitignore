@@ -9,3 +9,5 @@ zelix-hello/*.pkg.tar.zst
 zelix-updater/*.pkg.tar.zst
 paru/*.pkg.tar.zst
 paru/*.tar.zst
+x86_64/*.pkg.tar.zst
+x86_64/*.pkg.tar.xz
