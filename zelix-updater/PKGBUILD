@@ -1,6 +1,6 @@
 # PKGBUILD - ZelixOS Updater
 pkgname=zelix-updater
-pkgver=1.0.2
+pkgver=1.0.3
 pkgrel=1
 pkgdesc="ZelixOS official system updater application (Monochrome edition)"
 arch=('any')

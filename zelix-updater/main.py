@@ -5,12 +5,13 @@ from PyQt6.QtWidgets import (
     QPushButton, QProgressBar, QTextEdit, QLabel
 )
 from PyQt6.QtCore import QProcess, Qt
-from PyQt6.QtGui import QFont, QColor, QTextCursor
+from PyQt6.QtGui import QFont, QColor, QTextCursor, QIcon
 
 class UpdaterWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("ZelixOS Updater")
+        self.setWindowIcon(QIcon("/usr/share/zelix/zelix-icon.png"))
         self.resize(720, 520)
 
         # Monochromatic Minimalist Theme (OLED Black / Pure White)
