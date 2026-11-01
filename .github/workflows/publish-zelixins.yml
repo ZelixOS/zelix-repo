@@ -1,0 +1,102 @@
+name: Publish Zelixins
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: publish-zelixins
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: archlinux:base-devel
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ZelixOS/zelix-repo
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Install Arch build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed git github-cli python python-pyqt6 qt6-imageformats archinstall arch-install-scripts polkit util-linux
+      - name: Check out the exact workflow commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin https://github.com/ZelixOS/zelix-repo.git
+          git fetch --depth 1 origin "$SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build as an unprivileged user
+        shell: bash
+        run: |
+          set -euo pipefail
+          useradd -m builder
+          mkdir -p dist
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          runuser -u builder -- env PKGDEST="$GITHUB_WORKSPACE/dist" bash -c 'cd "$1/zelixins"; makepkg --force --cleanbuild --noconfirm' bash "$GITHUB_WORKSPACE"
+      - name: Verify package sources and prepare repository index
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, tarfile
+          from pathlib import Path
+          packages = list(Path('dist').glob('*.pkg.tar.zst'))
+          assert len(packages) == 1, packages
+          package = packages[0]
+          with tarfile.open(package, 'r:zst') as archive:
+              for filename in ('myself.py', 'installer_support.py', 'desktop_catalog.py', 'desktop_page.py', 'desktop_setup.py', 'desktop_theme.py', 'zelix_post_install.sh'):
+                  assert archive.extractfile('usr/share/zelixins/'+filename).read() == (Path('zelixins')/filename).read_bytes(), filename
+              assert b'Autologin' not in archive.extractfile('usr/share/zelixins/zelixdeps/etc/sddm.conf').read()
+              assert not any('/slides/' in m.name or '__pycache__' in m.name for m in archive.getmembers())
+          with package.open('rb') as stream:
+              digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+          package.with_suffix(package.suffix+'.sha256').write_text(digest+'  '+package.name+'\n')
+          Path('dist/package-name').write_text(package.name)
+          print('Verified package SHA256:', digest)
+          PY
+          package=$(cat dist/package-name)
+          repo-add x86_64/zelixrepo.db.tar.gz "$GITHUB_WORKSPACE/dist/$package"
+      - name: Upload the package before the indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          package=$(cat dist/package-name)
+          gh release upload stable "dist/$package" "dist/$package.sha256" --clobber
+      - name: Verify all indexed packages on GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view stable --json assets > dist/remote-assets.json
+          python - <<'PY'
+          import json, tarfile
+          from pathlib import Path
+          assets = {a['name']: a for a in json.loads(Path('dist/remote-assets.json').read_text())['assets']}
+          with tarfile.open('x86_64/zelixrepo.db.tar.gz') as archive:
+              for member in archive.getmembers():
+                  if not member.name.endswith('/desc'):
+                      continue
+                  lines = archive.extractfile(member).read().decode().splitlines()
+                  name = lines[lines.index('%FILENAME%')+1]
+                  digest = lines[lines.index('%SHA256SUM%')+1]
+                  assert assets[name]['state'] == 'uploaded', name
+                  assert assets[name]['digest'] == 'sha256:'+digest, name
+          print('All indexed package checksums verified against GitHub.')
+          PY
+      - name: Publish verified indexes and commit their metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload stable x86_64/zelixrepo.db x86_64/zelixrepo.db.tar.gz x86_64/zelixrepo.files x86_64/zelixrepo.files.tar.gz --clobber
+          gh auth setup-git
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add x86_64/zelixrepo.db x86_64/zelixrepo.db.tar.gz x86_64/zelixrepo.files x86_64/zelixrepo.files.tar.gz
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update published Zelixins package checksums'
+            git push origin HEAD:main
+          fi
