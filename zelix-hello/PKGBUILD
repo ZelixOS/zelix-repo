@@ -1,6 +1,6 @@
 # PKGBUILD
 pkgname=zelix-hello
-pkgver=v1.0.2.r5.gebb6e84
+pkgver=v1.0.2.r6.gab866c8
 pkgrel=1
 pkgdesc="ZelixOS Hello Application"
 arch=('any')
