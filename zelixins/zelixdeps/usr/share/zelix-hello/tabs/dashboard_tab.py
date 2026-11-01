@@ -1,9 +1,10 @@
 import os
 import shutil
 import subprocess
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout, 
-                             QPushButton, QGridLayout, QComboBox, QSpacerItem, 
-                             QSizePolicy, QDialog, QTableWidget, QTableWidgetItem, QHeaderView)
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
+                             QPushButton, QGridLayout, QComboBox, QSpacerItem,
+                             QSizePolicy, QDialog, QTableWidget, QTableWidgetItem, QHeaderView,
+                             QPlainTextEdit)
 from PyQt6.QtCore import Qt, QUrl, QSize
 from PyQt6.QtGui import QDesktopServices, QIcon
 from utils.translations import Translator
@@ -17,6 +18,99 @@ def get_asset_icon(name):
     if os.path.exists(system_path):
         return QIcon(system_path)
     return QIcon()
+
+class ReadmeDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(Translator.get("readme_title"))
+        self.setMinimumSize(680, 520)
+        self.resize(750, 580)
+        self.current_lang = "tr" if "turkish" in Translator.get_language().lower() else "en"
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        header_layout = QHBoxLayout()
+        title = QLabel(Translator.get("readme_title"))
+        title.setObjectName("title_label")
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+
+        self.btn_lang = QPushButton()
+        self.btn_lang.setObjectName("primary_btn")
+        self.btn_lang.setFixedWidth(150)
+        self.btn_lang.clicked.connect(self.toggle_language)
+        header_layout.addWidget(self.btn_lang)
+        layout.addLayout(header_layout)
+
+        self.text_view = QPlainTextEdit()
+        self.text_view.setReadOnly(True)
+        self.text_view.setStyleSheet(
+            "background-color: #1e1e2e; color: #cdd6f4; "
+            "font-family: monospace; font-size: 13px; "
+            "border-radius: 8px; padding: 10px;"
+        )
+        layout.addWidget(self.text_view)
+
+        bottom_layout = QHBoxLayout()
+        self.btn_external = QPushButton(Translator.get("readme_open_ext"))
+        self.btn_external.clicked.connect(self.open_external)
+        bottom_layout.addWidget(self.btn_external)
+        bottom_layout.addStretch()
+
+        btn_close = QPushButton(Translator.get("btn_close"))
+        btn_close.setObjectName("launch_installer_btn")
+        btn_close.clicked.connect(self.accept)
+        bottom_layout.addWidget(btn_close)
+
+        layout.addLayout(bottom_layout)
+        self.update_content()
+
+    def get_readme_path(self, lang):
+        app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if lang == "tr":
+            filenames = ["readme_tr.txt", "readme.txt"]
+        else:
+            filenames = ["readme_en.txt", "readme.txt"]
+
+        for fn in filenames:
+            local = os.path.join(app_dir, fn)
+            if os.path.exists(local):
+                return local
+            system = os.path.join("/usr/share/zelix-hello", fn)
+            if os.path.exists(system):
+                return system
+        return None
+
+    def update_content(self):
+        if self.current_lang == "tr":
+            self.btn_lang.setText("English 🇬🇧")
+        else:
+            self.btn_lang.setText("Türkçe 🇹🇷")
+
+        path = self.get_readme_path(self.current_lang)
+        if path and os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    self.text_view.setPlainText(f.read())
+            except Exception as e:
+                self.text_view.setPlainText(f"Hata: {e}")
+        else:
+            self.text_view.setPlainText("Readme dosyası bulunamadı / Readme file not found.")
+
+    def toggle_language(self):
+        self.current_lang = "en" if self.current_lang == "tr" else "tr"
+        self.update_content()
+
+    def open_external(self):
+        path = self.get_readme_path(self.current_lang)
+        if path and os.path.exists(path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+        else:
+            QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS"))
 
 class ShortcutsDialog(QDialog):
     def __init__(self, parent=None):
@@ -80,95 +174,95 @@ class DashboardTab(QWidget):
         self.parent_window = parent_window
         self._init_ui()
         Translator.add_listener(self)
-        
+
     def _init_ui(self):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(40, 40, 40, 20)
         self.main_layout.setSpacing(10)
-        
+
         # Header
         header_layout = QVBoxLayout()
         header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         self.title = QLabel()
         self.title.setObjectName("dashboard_title")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         self.subtitle = QLabel()
         self.subtitle.setObjectName("dashboard_subtitle")
         self.subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.subtitle.setWordWrap(True)
         self.subtitle.setMinimumHeight(140)
         self.subtitle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        
+
         header_layout.addWidget(self.title)
         header_layout.addSpacing(10)
         header_layout.addWidget(self.subtitle)
-        
+
         self.main_layout.addLayout(header_layout)
         self.main_layout.addSpacing(30)
-        
+
         # Grid section
         grid_layout = QGridLayout()
         grid_layout.setSpacing(15)
-        
+
         # Headers
         self.lbl_doc = QLabel()
         self.lbl_sup = QLabel()
         self.lbl_proj = QLabel()
-        
+
         for i, lbl in enumerate([self.lbl_doc, self.lbl_sup, self.lbl_proj]):
             lbl.setObjectName("grid_header")
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             grid_layout.addWidget(lbl, 0, i)
-            
+
         # Row 1
         self.btn_readme = QPushButton()
         self.btn_forum = QPushButton()
         self.btn_get_involved = QPushButton()
-        
+
         # Row 2
         self.btn_release_info = QPushButton()
         self.btn_software = QPushButton()
         self.btn_development = QPushButton()
-        
+
         # Row 3
         self.btn_wiki = QPushButton()
         self.btn_system = QPushButton()
         self.btn_donate = QPushButton()
-        
+
         # Add to grid
         grid_layout.addWidget(self.btn_readme, 1, 0)
         grid_layout.addWidget(self.btn_forum, 1, 1)
         grid_layout.addWidget(self.btn_get_involved, 1, 2)
-        
+
         grid_layout.addWidget(self.btn_release_info, 2, 0)
         grid_layout.addWidget(self.btn_software, 2, 1)
         grid_layout.addWidget(self.btn_development, 2, 2)
-        
+
         grid_layout.addWidget(self.btn_wiki, 3, 0)
         grid_layout.addWidget(self.btn_system, 3, 1)
         grid_layout.addWidget(self.btn_donate, 3, 2)
-        
+
         self.main_layout.addLayout(grid_layout)
         self.main_layout.addSpacing(30)
-        
+
         # Shortcuts Section (Replaces old installer section)
         shortcuts_layout = QVBoxLayout()
         shortcuts_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         self.btn_shortcuts = QPushButton()
         self.btn_shortcuts.setObjectName("launch_installer_btn")
         self.btn_shortcuts.clicked.connect(self.show_shortcuts)
-        
+
         shortcuts_layout.addWidget(self.btn_shortcuts)
         self.main_layout.addLayout(shortcuts_layout)
-        
+
         self.main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
+
         # Footer
         footer_layout = QHBoxLayout()
-        
+
         self.lang_combo = QComboBox()
         self.lang_combo.addItems(["English", "Turkish"])
         # Set current selection
@@ -177,10 +271,10 @@ class DashboardTab(QWidget):
             self.lang_combo.setCurrentIndex(idx)
         self.lang_combo.setFixedWidth(150)
         self.lang_combo.currentTextChanged.connect(self.change_language)
-        
+
         footer_layout.addWidget(self.lang_combo)
         footer_layout.addStretch()
-        
+
         # Social Icons
         social_layout = QHBoxLayout()
         btn_tg = QPushButton()
@@ -202,49 +296,49 @@ class DashboardTab(QWidget):
         social_layout.addWidget(btn_dc)
         social_layout.addWidget(btn_gh)
         footer_layout.addLayout(social_layout)
-        
+
         footer_layout.addStretch()
-        
+
         self.lbl_launch = QLabel()
         self.lbl_launch.setObjectName("footer_text")
-        
+
         self.btn_autostart = QPushButton()
         self.btn_autostart.setCheckable(True)
         self.btn_autostart.setObjectName("toggle_btn")
         self.btn_autostart.clicked.connect(self.toggle_autostart)
-        
+
         self.autostart_path = os.path.expanduser("~/.config/autostart/zelix-hello.desktop")
         self.system_autostart_path = "/etc/xdg/autostart/zelix-hello.desktop"
-        
+
         if os.path.exists(self.autostart_path) or os.path.exists(self.system_autostart_path):
             self.btn_autostart.setChecked(True)
             self.btn_autostart.setText(Translator.get("toggle_on"))
         else:
             self.btn_autostart.setChecked(False)
             self.btn_autostart.setText(Translator.get("toggle_off"))
-        
+
         footer_layout.addWidget(self.lbl_launch)
         footer_layout.addWidget(self.btn_autostart)
-        
+
         self.main_layout.addLayout(footer_layout)
 
         # Connect actions
         self.btn_software.clicked.connect(lambda: self.parent_window.navigate_to(1))
         self.btn_system.clicked.connect(lambda: self.parent_window.navigate_to(2))
-        
+
         # Connect URLs
         self.btn_readme.clicked.connect(self.open_readme)
         self.btn_wiki.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://docs.zelixos.com")))
         self.btn_forum.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://forum.zelixos.org")))
-        self.btn_release_info.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS/releases")))
+        self.btn_release_info.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://zelixos.com/release-aurora.html")))
         self.btn_get_involved.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
         self.btn_development.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
         self.btn_donate.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://zelixos.com/")))
-        
+
         btn_tg.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://t.me/zelixos")))
         btn_dc.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://discord.gg/zelixos")))
         btn_gh.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
-        
+
         self.retranslate_ui()
 
     def show_shortcuts(self):
@@ -252,29 +346,8 @@ class DashboardTab(QWidget):
         dialog.exec()
 
     def open_readme(self):
-        app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        current_lang = Translator.get_language().lower()
-        
-        if "turkish" in current_lang:
-            filenames = ["readme_tr.txt", "readme.txt"]
-        else:
-            filenames = ["readme_en.txt", "readme.txt"]
-            
-        readme_path = None
-        for fn in filenames:
-            local_candidate = os.path.join(app_dir, fn)
-            if os.path.exists(local_candidate):
-                readme_path = local_candidate
-                break
-            system_candidate = os.path.join("/usr/share/zelix-hello", fn)
-            if os.path.exists(system_candidate):
-                readme_path = system_candidate
-                break
-                
-        if readme_path and os.path.exists(readme_path):
-            QDesktopServices.openUrl(QUrl.fromLocalFile(readme_path))
-        else:
-            QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS/blob/main/README.md"))
+        dialog = ReadmeDialog(self)
+        dialog.exec()
 
     def change_language(self, lang):
         Translator.set_language(lang)
@@ -282,11 +355,11 @@ class DashboardTab(QWidget):
     def retranslate_ui(self):
         self.title.setText(Translator.get("welcome_title"))
         self.subtitle.setText(Translator.get("welcome_subtitle"))
-        
+
         self.lbl_doc.setText(Translator.get("doc_header"))
         self.lbl_sup.setText(Translator.get("support_header"))
         self.lbl_proj.setText(Translator.get("project_header"))
-        
+
         self.btn_readme.setText(Translator.get("btn_readme"))
         self.btn_release_info.setText(Translator.get("btn_release_info"))
         self.btn_wiki.setText(Translator.get("btn_wiki"))
@@ -296,9 +369,9 @@ class DashboardTab(QWidget):
         self.btn_get_involved.setText(Translator.get("btn_get_involved"))
         self.btn_development.setText(Translator.get("btn_development"))
         self.btn_donate.setText(Translator.get("btn_donate"))
-        
+
         self.btn_shortcuts.setText(Translator.get("btn_shortcuts"))
-        
+
         self.lbl_launch.setText(Translator.get("lbl_launch_start"))
         if self.btn_autostart.isChecked():
             self.btn_autostart.setText(Translator.get("toggle_on"))
@@ -309,7 +382,7 @@ class DashboardTab(QWidget):
         autostart_dir = os.path.expanduser("~/.config/autostart")
         if not os.path.exists(autostart_dir):
             os.makedirs(autostart_dir, exist_ok=True)
-            
+
         if self.btn_autostart.isChecked():
             self.btn_autostart.setText(Translator.get("toggle_on"))
             desktop_content = (
@@ -340,7 +413,7 @@ class DashboardTab(QWidget):
                     os.remove(self.autostart_path)
                 except Exception as e:
                     print(f"Error disabling user autostart: {e}")
-            
+
             # Remove system autostart
             if os.path.exists(self.system_autostart_path):
                 try:

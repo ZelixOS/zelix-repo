@@ -11,3 +11,4 @@ paru/*.pkg.tar.zst
 paru/*.tar.zst
 x86_64/*.pkg.tar.zst
 x86_64/*.pkg.tar.xz
+x86_64/*.sha256
