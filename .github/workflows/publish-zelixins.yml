@@ -51,6 +51,11 @@ jobs:
           with tarfile.open(package, 'r:zst') as archive:
               for filename in ('myself.py', 'installer_support.py', 'desktop_catalog.py', 'desktop_page.py', 'desktop_setup.py', 'desktop_theme.py', 'zelix_post_install.sh'):
                   assert archive.extractfile('usr/share/zelixins/'+filename).read() == (Path('zelixins')/filename).read_bytes(), filename
+              for folder in ('backgrounds', 'previews'):
+                  for source in (Path('zelixins')/folder).rglob('*'):
+                      if source.is_file():
+                          member = 'usr/share/zelixins/'+str(source.relative_to('zelixins'))
+                          assert archive.extractfile(member).read() == source.read_bytes(), member
               assert b'Autologin' not in archive.extractfile('usr/share/zelixins/zelixdeps/etc/sddm.conf').read()
               assert not any('/slides/' in m.name or '__pycache__' in m.name for m in archive.getmembers())
           with package.open('rb') as stream:
