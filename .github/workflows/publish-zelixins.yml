@@ -25,11 +25,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git init .
           git remote add origin https://github.com/ZelixOS/zelix-repo.git
           git fetch --depth 1 origin "$SOURCE_SHA"
           git checkout --detach FETCH_HEAD
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Build as an unprivileged user
         shell: bash
         run: |
