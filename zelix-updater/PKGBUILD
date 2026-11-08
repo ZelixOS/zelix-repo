@@ -1,13 +1,13 @@
 # PKGBUILD - ZelixOS Updater
 pkgname=zelix-updater
-pkgver=1.0.5
-pkgrel=1
+pkgver=1.1.0
+pkgrel=3
 pkgdesc="ZelixOS official system updater application (Monochrome edition)"
 arch=('any')
 options=('!debug' '!strip')
 url="https://github.com/ZelixOS/zelix-updater"
 license=('GPL')
-depends=('python' 'python-pyqt6' 'polkit')
+depends=('python' 'python-pyqt6' 'polkit' 'pacman-contrib' 'fakeroot')
 
 source=("main.py"
         "zelix-updater.desktop"
