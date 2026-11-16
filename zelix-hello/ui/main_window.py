@@ -7,6 +7,7 @@ from tabs.dashboard_tab import DashboardTab
 from tabs.apps_tab import AppsTab
 from tabs.system_tab import SystemTab
 from tabs.tweaks_tab import TweaksTab
+from tabs.drivers_tab import DriversTab
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -39,12 +40,14 @@ class MainWindow(QMainWindow):
         self.apps_tab = AppsTab(self)
         self.system_tab = SystemTab(self)
         self.tweaks_tab = TweaksTab(self)
+        self.drivers_tab = DriversTab(self)
 
         # Add to stacked widget
         self.stacked_widget.addWidget(self.dashboard_tab)
         self.stacked_widget.addWidget(self.apps_tab)
         self.stacked_widget.addWidget(self.system_tab)
         self.stacked_widget.addWidget(self.tweaks_tab)
+        self.stacked_widget.addWidget(self.drivers_tab)
 
         self.stacked_widget.setCurrentIndex(0)
 
@@ -54,5 +57,6 @@ class MainWindow(QMainWindow):
         1: Apps
         2: System
         3: Tweaks
+        4: Drivers
         """
         self.stacked_widget.setCurrentIndex(index)

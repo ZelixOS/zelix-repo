@@ -1,5 +1,5 @@
 pkgname=zelix-hello
-pkgver=1.0.3
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="ZelixOS welcome and system maintenance application"
 arch=('any')
@@ -7,16 +7,21 @@ options=('!debug' '!strip')
 url="https://github.com/ZelixOS/zelix-hello"
 license=('GPL')
 depends=('python' 'python-pyqt6' 'qt6-svg' 'polkit')
-optdepends=('rate-mirrors: mirror optimization' 'flatpak: Flathub applications')
+optdepends=('rate-mirrors: mirror optimization'
+            'flatpak: Flathub applications'
+            'git: manual AUR package installation')
 # Sources are synchronized from the workspace, never fetched from a moving Git branch.
 source=()
 sha256sums=()
 package() {
-    install -d "$pkgdir/usr/share/zelix-hello" "$pkgdir/usr/share/applications" "$pkgdir/usr/bin"
-    cp -rp "$startdir/main.py" "$startdir/tabs" "$startdir/ui" "$startdir/utils" "$startdir/assets" "$pkgdir/usr/share/zelix-hello/"
+    install -d "$pkgdir/usr/share/zelix-hello" "$pkgdir/usr/share/applications" \
+        "$pkgdir/usr/bin" "$pkgdir/etc/xdg/autostart"
+    cp -r "$startdir/main.py" "$startdir/tabs" "$startdir/ui" "$startdir/utils" "$startdir/assets" "$pkgdir/usr/share/zelix-hello/"
     cp "$startdir"/readme*.txt "$pkgdir/usr/share/zelix-hello/"
     find "$pkgdir/usr/share/zelix-hello" -type d -name __pycache__ -prune -exec rm -rf {} +
     install -m644 "$startdir/zelix-hello.desktop" "$pkgdir/usr/share/applications/"
+    install -m644 "$startdir/zelix-hello-autostart.desktop" \
+        "$pkgdir/etc/xdg/autostart/zelix-hello.desktop"
     printf '#!/bin/bash\nexec python /usr/share/zelix-hello/main.py "$@"\n' > "$pkgdir/usr/bin/zelix-hello"
     chmod +x "$pkgdir/usr/bin/zelix-hello"
 }

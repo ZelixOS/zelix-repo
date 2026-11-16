@@ -15,7 +15,7 @@ class WelcomeTab(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Title
-        title = QLabel("ZelixOS'e Hoşgeldiniz!")
+        title = QLabel("ZelixOS'a Hoş Geldiniz")
         title.setObjectName("title_label")
         layout.addWidget(title)
 

@@ -1,8 +1,10 @@
 import os
+import shlex
 import shutil
 import subprocess
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
-                             QGroupBox, QMessageBox, QPlainTextEdit, QHBoxLayout)
+                             QGroupBox, QMessageBox, QPlainTextEdit, QHBoxLayout,
+                             QGridLayout)
 from PyQt6.QtCore import Qt
 from utils.command_runner import CommandRunner
 from utils.translations import Translator
@@ -17,7 +19,8 @@ class SystemTab(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(10)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Header with back button
@@ -27,15 +30,22 @@ class SystemTab(QWidget):
         self.btn_back.clicked.connect(lambda: self.parent_window.navigate_to(0))
         header_layout.addWidget(self.btn_back)
         header_layout.addStretch()
+        self.btn_drivers = QPushButton()
+        self.btn_drivers.clicked.connect(lambda: self.parent_window.navigate_to(4))
+        header_layout.addWidget(self.btn_drivers)
+        self.btn_tweaks = QPushButton()
+        self.btn_tweaks.clicked.connect(lambda: self.parent_window.navigate_to(3))
+        header_layout.addWidget(self.btn_tweaks)
         layout.addLayout(header_layout)
 
         self.title = QLabel()
         self.title.setObjectName("title_label")
         layout.addWidget(self.title)
 
-        # Updates Group
         self.update_group = QGroupBox()
-        update_layout = QVBoxLayout(self.update_group)
+        update_layout = QHBoxLayout(self.update_group)
+        update_layout.setContentsMargins(12, 18, 12, 12)
+        update_layout.setSpacing(10)
 
         self.btn_update = QPushButton()
         self.btn_update.setObjectName("primary_btn")
@@ -44,14 +54,18 @@ class SystemTab(QWidget):
         self.btn_updater_gui = QPushButton()
         self.btn_updater_gui.clicked.connect(self.launch_zelix_updater)
 
-        update_layout.addWidget(self.btn_update)
-        update_layout.addWidget(self.btn_updater_gui)
+        self.btn_update.setMinimumHeight(46)
+        self.btn_updater_gui.setMinimumHeight(46)
+        update_layout.addWidget(self.btn_update, 1)
+        update_layout.addWidget(self.btn_updater_gui, 1)
 
         layout.addWidget(self.update_group)
 
-        # Maintenance Group
         self.maint_group = QGroupBox()
-        maint_layout = QVBoxLayout(self.maint_group)
+        maint_layout = QGridLayout(self.maint_group)
+        maint_layout.setContentsMargins(12, 18, 12, 12)
+        maint_layout.setHorizontalSpacing(10)
+        maint_layout.setVerticalSpacing(10)
 
         self.btn_clear_cache = QPushButton()
         self.btn_clear_cache.clicked.connect(lambda: self.run_command(["pacman", "-Sc", "--noconfirm"]))
@@ -65,18 +79,23 @@ class SystemTab(QWidget):
         self.btn_enable_flathub = QPushButton()
         self.btn_enable_flathub.clicked.connect(self.enable_flathub)
 
-        maint_layout.addWidget(self.btn_clear_cache)
-        maint_layout.addWidget(self.btn_remove_orphans)
-        maint_layout.addWidget(self.btn_optimize_mirrors)
-        maint_layout.addWidget(self.btn_enable_flathub)
+        for button in (
+            self.btn_clear_cache, self.btn_remove_orphans,
+            self.btn_optimize_mirrors, self.btn_enable_flathub,
+        ):
+            button.setMinimumHeight(44)
+        maint_layout.addWidget(self.btn_clear_cache, 0, 0)
+        maint_layout.addWidget(self.btn_remove_orphans, 0, 1)
+        maint_layout.addWidget(self.btn_optimize_mirrors, 1, 0)
+        maint_layout.addWidget(self.btn_enable_flathub, 1, 1)
 
         layout.addWidget(self.maint_group)
 
         # Terminal Output Area
         self.lbl_terminal = QLabel()
         self.terminal_output = QPlainTextEdit()
+        self.terminal_output.setObjectName("terminal_output")
         self.terminal_output.setReadOnly(True)
-        self.terminal_output.setStyleSheet("background-color: #000000; color: #00FF00; font-family: monospace;")
         layout.addWidget(self.lbl_terminal)
         layout.addWidget(self.terminal_output)
 
@@ -89,11 +108,15 @@ class SystemTab(QWidget):
         self.btn_remove_orphans.setEnabled(enabled)
         self.btn_optimize_mirrors.setEnabled(enabled)
         self.btn_enable_flathub.setEnabled(enabled)
+        self.btn_drivers.setEnabled(enabled)
+        self.btn_tweaks.setEnabled(enabled)
 
     def retranslate_ui(self):
         self.btn_back.setText(Translator.get("btn_back"))
+        self.btn_drivers.setText(Translator.get("btn_drivers"))
+        self.btn_tweaks.setText(Translator.get("btn_tweaks"))
         self.title.setText(Translator.get("sys_title"))
-        self.update_group.setTitle(Translator.get("sys_title"))
+        self.update_group.setTitle(Translator.get("sys_updates"))
         self.maint_group.setTitle(Translator.get("sys_maintenance"))
         self.btn_update.setText(Translator.get("sys_update"))
         self.btn_updater_gui.setText(Translator.get("sys_updater_gui"))
@@ -112,7 +135,9 @@ class SystemTab(QWidget):
         elif os.path.exists("/usr/share/zelix-updater/main.py"):
             subprocess.Popen(["python", "/usr/share/zelix-updater/main.py"])
         else:
-            QMessageBox.information(self, "Zelix Updater", "zelix-updater is not found on this system.")
+            QMessageBox.information(
+                self, "Zelix Updater", Translator.get("sys_updater_missing")
+            )
 
     def run_update(self):
         reply = QMessageBox.question(
@@ -128,9 +153,13 @@ class SystemTab(QWidget):
 
     def run_remove_orphans(self):
         self.terminal_output.clear()
+        no_orphans = shlex.quote(Translator.get("no_orphans"))
         command = [
             "bash", "-c",
-            "orphans=$(pacman -Qdtq); if [ -n \"$orphans\" ]; then echo \"$orphans\" | pkexec pacman -Rns - --noconfirm; else echo 'No orphan packages found.'; fi"
+            "orphans=$(pacman -Qdtq); "
+            "if [ -n \"$orphans\" ]; then "
+            "echo \"$orphans\" | pkexec pacman -Rns - --noconfirm; "
+            f"else echo {no_orphans}; fi"
         ]
         self.run_command(command, use_pkexec=False)
 
@@ -153,7 +182,7 @@ class SystemTab(QWidget):
             QMessageBox.warning(
                 self,
                 Translator.get("msg_error"),
-                "rate-mirrors is not installed. Please install 'rate-mirrors' or 'rate-mirrors-bin'."
+                Translator.get("sys_rate_mirrors_missing")
             )
             return
 
@@ -169,10 +198,11 @@ class SystemTab(QWidget):
 
     def enable_flathub(self):
         self.terminal_output.clear()
+        success_text = shlex.quote(Translator.get("flathub_success"))
         cmd_str = (
             "if ! command -v flatpak &>/dev/null; then pkexec pacman -S --noconfirm flatpak; fi && "
             "flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo && "
-            "echo 'Flathub enabled successfully!'"
+            f"echo {success_text}"
         )
         command = ["bash", "-c", cmd_str]
         self.run_command(command, use_pkexec=False)

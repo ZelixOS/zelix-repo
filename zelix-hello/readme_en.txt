@@ -41,7 +41,7 @@ NOTE: 'Super' refers to the Windows key on your keyboard.
 3. Important Links & Support
 ----------------------------------------------------------------------
 * Official Website: https://zelixos.com
-* Release Notes: https://zelixos.com/release-aurora.html
+* Release Notes: https://zelixos.com/blog?lang=en
 * Wiki & Documentation: https://docs.zelixos.com
 * GitHub Organization: https://github.com/ZelixOS
 * Telegram Community: https://t.me/zelixos
