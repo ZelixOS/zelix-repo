@@ -3,7 +3,7 @@
 Type=Application
 Name=ZelixOS Updater
 Comment=ZelixOS Updater Program
-Exec=zelix-updater
+Exec=python /usr/share/zelix-updater/main.py
 Icon=/usr/share/zelix/zelix-updater.png
 Terminal=false
-Categories=System;
+Categories=System;Installer;

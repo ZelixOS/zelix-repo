@@ -41,7 +41,7 @@ NOT: Super klavyenizdeki Windows tuşudur.
 3. Önemli Bağlantılar ve Yardım
 ----------------------------------------------------------------------
 * Resmi Web Sitesi: https://zelixos.com
-* Sürüm Notları: https://zelixos.com/blog?lang=tr
+* Sürüm Notları: https://zelixos.com/release-aurora.html
 * Wiki & Dokümantasyon: https://docs.zelixos.com
 * GitHub Sayfası: https://github.com/ZelixOS
 * Telegram Topluluğu: https://t.me/zelixos

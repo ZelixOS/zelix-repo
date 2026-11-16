@@ -3,7 +3,8 @@ import shutil
 import subprocess
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QHBoxLayout,
                              QPushButton, QGridLayout, QComboBox, QSpacerItem,
-                             QSizePolicy, QDialog, QPlainTextEdit)
+                             QSizePolicy, QDialog, QTableWidget, QTableWidgetItem, QHeaderView,
+                             QPlainTextEdit)
 from PyQt6.QtCore import Qt, QUrl, QSize
 from PyQt6.QtGui import QDesktopServices, QIcon
 from utils.translations import Translator
@@ -46,8 +47,12 @@ class ReadmeDialog(QDialog):
         layout.addLayout(header_layout)
 
         self.text_view = QPlainTextEdit()
-        self.text_view.setObjectName("readme_text")
         self.text_view.setReadOnly(True)
+        self.text_view.setStyleSheet(
+            "background-color: #1e1e2e; color: #cdd6f4; "
+            "font-family: monospace; font-size: 13px; "
+            "border-radius: 8px; padding: 10px;"
+        )
         layout.addWidget(self.text_view)
 
         bottom_layout = QHBoxLayout()
@@ -82,9 +87,9 @@ class ReadmeDialog(QDialog):
 
     def update_content(self):
         if self.current_lang == "tr":
-            self.btn_lang.setText("English")
+            self.btn_lang.setText("English 🇬🇧")
         else:
-            self.btn_lang.setText("Türkçe")
+            self.btn_lang.setText("Türkçe 🇹🇷")
 
         path = self.get_readme_path(self.current_lang)
         if path and os.path.exists(path):
@@ -107,6 +112,62 @@ class ReadmeDialog(QDialog):
         else:
             QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS"))
 
+class ShortcutsDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(Translator.get("shortcuts_title"))
+        self.setMinimumSize(540, 440)
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(15)
+
+        title = QLabel(Translator.get("shortcuts_title"))
+        title.setObjectName("title_label")
+        layout.addWidget(title)
+
+        desc = QLabel(Translator.get("shortcuts_desc"))
+        desc.setObjectName("dashboard_subtitle")
+        layout.addWidget(desc)
+
+        table = QTableWidget()
+        table.setColumnCount(2)
+        table.setHorizontalHeaderLabels(["Kısayol / Key", "Açıklama / Action"])
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        shortcuts = [
+            ("Super (Win)", Translator.get("sc_app_launcher")),
+            ("Alt + Space / Alt + F2", Translator.get("sc_krunner")),
+            ("Ctrl + Alt + T", Translator.get("sc_terminal")),
+            ("Super + E", Translator.get("sc_file_manager")),
+            ("PrintScreen", Translator.get("sc_screenshot")),
+            ("Super + ← / → / ↑", Translator.get("sc_window_tiling")),
+            ("Ctrl + Alt + Del", Translator.get("sc_lock_logout")),
+        ]
+
+        table.setRowCount(len(shortcuts))
+        for row, (key, act) in enumerate(shortcuts):
+            key_item = QTableWidgetItem(f" {key} ")
+            key_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            act_item = QTableWidgetItem(f" {act} ")
+            table.setItem(row, 0, key_item)
+            table.setItem(row, 1, act_item)
+
+        layout.addWidget(table)
+
+        btn_close = QPushButton(Translator.get("btn_close"))
+        btn_close.setObjectName("launch_installer_btn")
+        btn_close.clicked.connect(self.accept)
+        layout.addWidget(btn_close)
+
+
 class DashboardTab(QWidget):
     def __init__(self, parent_window):
         super().__init__()
@@ -116,126 +177,127 @@ class DashboardTab(QWidget):
 
     def _init_ui(self):
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(42, 34, 42, 20)
-        self.main_layout.setSpacing(12)
+        self.main_layout.setContentsMargins(40, 40, 40, 20)
+        self.main_layout.setSpacing(10)
 
+        # Header
         header_layout = QVBoxLayout()
-        header_layout.setSpacing(6)
+        header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.title = QLabel()
         self.title.setObjectName("dashboard_title")
-        self.title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.subtitle = QLabel()
         self.subtitle.setObjectName("dashboard_subtitle")
-        self.subtitle.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.subtitle.setWordWrap(True)
+        self.subtitle.setMinimumHeight(140)
         self.subtitle.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         header_layout.addWidget(self.title)
+        header_layout.addSpacing(10)
         header_layout.addWidget(self.subtitle)
 
         self.main_layout.addLayout(header_layout)
-        self.main_layout.addSpacing(12)
+        self.main_layout.addSpacing(30)
 
-        self.btn_software = QPushButton()
-        self.btn_system = QPushButton()
+        # Grid section
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(15)
+
+        # Headers
+        self.lbl_doc = QLabel()
+        self.lbl_sup = QLabel()
+        self.lbl_proj = QLabel()
+
+        for i, lbl in enumerate([self.lbl_doc, self.lbl_sup, self.lbl_proj]):
+            lbl.setObjectName("grid_header")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            grid_layout.addWidget(lbl, 0, i)
+
+        # Row 1
         self.btn_readme = QPushButton()
-        self.btn_release_info = QPushButton()
-        self.btn_wiki = QPushButton()
         self.btn_forum = QPushButton()
         self.btn_get_involved = QPushButton()
+
+        # Row 2
+        self.btn_release_info = QPushButton()
+        self.btn_software = QPushButton()
+        self.btn_development = QPushButton()
+
+        # Row 3
+        self.btn_wiki = QPushButton()
+        self.btn_system = QPushButton()
         self.btn_donate = QPushButton()
 
-        self.lbl_start = QLabel()
-        self.lbl_start.setObjectName("section_title")
-        self.main_layout.addWidget(self.lbl_start)
+        # Add to grid
+        grid_layout.addWidget(self.btn_readme, 1, 0)
+        grid_layout.addWidget(self.btn_forum, 1, 1)
+        grid_layout.addWidget(self.btn_get_involved, 1, 2)
 
-        actions_layout = QHBoxLayout()
-        actions_layout.setSpacing(12)
-        self.btn_software.setObjectName("dashboard_primary")
-        self.btn_system.setObjectName("dashboard_action")
-        self.btn_software.setMinimumHeight(58)
-        self.btn_system.setMinimumHeight(58)
-        actions_layout.addWidget(self.btn_software, 1)
-        actions_layout.addWidget(self.btn_system, 1)
-        self.main_layout.addLayout(actions_layout)
-        self.main_layout.addSpacing(18)
+        grid_layout.addWidget(self.btn_release_info, 2, 0)
+        grid_layout.addWidget(self.btn_software, 2, 1)
+        grid_layout.addWidget(self.btn_development, 2, 2)
 
-        self.lbl_doc = QLabel()
-        self.lbl_doc.setObjectName("section_title")
-        self.main_layout.addWidget(self.lbl_doc)
+        grid_layout.addWidget(self.btn_wiki, 3, 0)
+        grid_layout.addWidget(self.btn_system, 3, 1)
+        grid_layout.addWidget(self.btn_donate, 3, 2)
 
-        resources_grid = QGridLayout()
-        resources_grid.setHorizontalSpacing(10)
-        resources_grid.setVerticalSpacing(10)
-        for button in (
-            self.btn_readme, self.btn_release_info, self.btn_wiki,
-            self.btn_forum, self.btn_get_involved, self.btn_donate,
-        ):
-            button.setObjectName("dashboard_link")
-            button.setMinimumHeight(46)
-        resources_grid.addWidget(self.btn_readme, 0, 0)
-        resources_grid.addWidget(self.btn_release_info, 0, 1)
-        resources_grid.addWidget(self.btn_wiki, 0, 2)
-        resources_grid.addWidget(self.btn_forum, 1, 0)
-        resources_grid.addWidget(self.btn_get_involved, 1, 1)
-        resources_grid.addWidget(self.btn_donate, 1, 2)
-        self.main_layout.addLayout(resources_grid)
+        self.main_layout.addLayout(grid_layout)
+        self.main_layout.addSpacing(30)
+
+        # Shortcuts Section (Replaces old installer section)
+        shortcuts_layout = QVBoxLayout()
+        shortcuts_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.btn_shortcuts = QPushButton()
+        self.btn_shortcuts.setObjectName("launch_installer_btn")
+        self.btn_shortcuts.clicked.connect(self.show_shortcuts)
+
+        shortcuts_layout.addWidget(self.btn_shortcuts)
+        self.main_layout.addLayout(shortcuts_layout)
 
         self.main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
+        # Footer
         footer_layout = QHBoxLayout()
-        footer_layout.setSpacing(0)
-
-        left_footer = QWidget()
-        left_footer.setFixedWidth(230)
-        left_footer_layout = QHBoxLayout(left_footer)
-        left_footer_layout.setContentsMargins(0, 0, 0, 0)
 
         self.lang_combo = QComboBox()
-        self.lang_combo.addItem("English", "English")
-        self.lang_combo.addItem("Türkçe", "Turkish")
-        idx = self.lang_combo.findData(Translator.get_language())
+        self.lang_combo.addItems(["English", "Turkish"])
+        # Set current selection
+        idx = self.lang_combo.findText(Translator.get_language())
         if idx >= 0:
             self.lang_combo.setCurrentIndex(idx)
         self.lang_combo.setFixedWidth(150)
-        self.lang_combo.currentIndexChanged.connect(self.change_language)
+        self.lang_combo.currentTextChanged.connect(self.change_language)
 
-        left_footer_layout.addWidget(self.lang_combo)
-        left_footer_layout.addStretch()
-        footer_layout.addWidget(left_footer)
+        footer_layout.addWidget(self.lang_combo)
         footer_layout.addStretch()
 
+        # Social Icons
         social_layout = QHBoxLayout()
-        social_layout.setSpacing(10)
-        btn_yt = QPushButton()
+        btn_tg = QPushButton()
         btn_dc = QPushButton()
         btn_gh = QPushButton()
-        btn_yt.setObjectName("social_btn")
+        btn_tg.setObjectName("social_btn")
         btn_dc.setObjectName("social_btn")
         btn_gh.setObjectName("social_btn")
-        btn_yt.setIcon(get_asset_icon("youtube.svg"))
+        btn_tg.setIcon(get_asset_icon("telegram.svg"))
         btn_dc.setIcon(get_asset_icon("discord.svg"))
         btn_gh.setIcon(get_asset_icon("github.svg"))
-        btn_yt.setIconSize(QSize(20, 20))
+        btn_tg.setIconSize(QSize(20, 20))
         btn_dc.setIconSize(QSize(20, 20))
         btn_gh.setIconSize(QSize(20, 20))
-        btn_yt.setToolTip("YouTube")
+        btn_tg.setToolTip("Telegram")
         btn_dc.setToolTip("Discord")
         btn_gh.setToolTip("GitHub")
-        social_layout.addWidget(btn_yt)
+        social_layout.addWidget(btn_tg)
         social_layout.addWidget(btn_dc)
         social_layout.addWidget(btn_gh)
         footer_layout.addLayout(social_layout)
 
         footer_layout.addStretch()
-
-        right_footer = QWidget()
-        right_footer.setFixedWidth(230)
-        right_footer_layout = QHBoxLayout(right_footer)
-        right_footer_layout.setContentsMargins(0, 0, 0, 0)
-        right_footer_layout.addStretch()
 
         self.lbl_launch = QLabel()
         self.lbl_launch.setObjectName("footer_text")
@@ -255,9 +317,8 @@ class DashboardTab(QWidget):
             self.btn_autostart.setChecked(False)
             self.btn_autostart.setText(Translator.get("toggle_off"))
 
-        right_footer_layout.addWidget(self.lbl_launch)
-        right_footer_layout.addWidget(self.btn_autostart)
-        footer_layout.addWidget(right_footer)
+        footer_layout.addWidget(self.lbl_launch)
+        footer_layout.addWidget(self.btn_autostart)
 
         self.main_layout.addLayout(footer_layout)
 
@@ -269,34 +330,35 @@ class DashboardTab(QWidget):
         self.btn_readme.clicked.connect(self.open_readme)
         self.btn_wiki.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://docs.zelixos.com")))
         self.btn_forum.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://forum.zelixos.org")))
-        self.btn_release_info.clicked.connect(self.open_release_info)
+        self.btn_release_info.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://zelixos.com/release-aurora.html")))
         self.btn_get_involved.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
+        self.btn_development.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
         self.btn_donate.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://zelixos.com/")))
 
-        btn_yt.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://www.youtube.com/@Zelix_OS")))
+        btn_tg.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://t.me/zelixos")))
         btn_dc.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://discord.gg/zelixos")))
         btn_gh.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
 
         self.retranslate_ui()
 
+    def show_shortcuts(self):
+        dialog = ShortcutsDialog(self)
+        dialog.exec()
+
     def open_readme(self):
         dialog = ReadmeDialog(self)
         dialog.exec()
 
-    @staticmethod
-    def open_release_info():
-        language = "tr" if Translator.get_language() == "Turkish" else "en"
-        QDesktopServices.openUrl(QUrl(f"https://zelixos.com/blog?lang={language}"))
-
-    def change_language(self, _index):
-        Translator.set_language(self.lang_combo.currentData())
+    def change_language(self, lang):
+        Translator.set_language(lang)
 
     def retranslate_ui(self):
         self.title.setText(Translator.get("welcome_title"))
         self.subtitle.setText(Translator.get("welcome_subtitle"))
 
-        self.lbl_start.setText(Translator.get("start_header"))
         self.lbl_doc.setText(Translator.get("doc_header"))
+        self.lbl_sup.setText(Translator.get("support_header"))
+        self.lbl_proj.setText(Translator.get("project_header"))
 
         self.btn_readme.setText(Translator.get("btn_readme"))
         self.btn_release_info.setText(Translator.get("btn_release_info"))
@@ -305,7 +367,10 @@ class DashboardTab(QWidget):
         self.btn_software.setText(Translator.get("btn_software"))
         self.btn_system.setText(Translator.get("btn_system"))
         self.btn_get_involved.setText(Translator.get("btn_get_involved"))
+        self.btn_development.setText(Translator.get("btn_development"))
         self.btn_donate.setText(Translator.get("btn_donate"))
+
+        self.btn_shortcuts.setText(Translator.get("btn_shortcuts"))
 
         self.lbl_launch.setText(Translator.get("lbl_launch_start"))
         if self.btn_autostart.isChecked():
