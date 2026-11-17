@@ -41,7 +41,6 @@ for path in "$DEPS_PATH"/*; do
     cp -a "$path" "$TARGET/"
 done
 mkdir -p "$TARGET/etc/xdg/autostart"
-install -m644 "$DEPS_PATH/etc/xdg/autostart/zelix-hello.desktop" "$TARGET/etc/xdg/autostart/"
 if [[ $GREETER == sddm ]]; then
     mkdir -p "$TARGET/etc/sddm.conf.d"
     cp -a "$DEPS_PATH/etc/sddm.conf" "$TARGET/etc/"
@@ -93,6 +92,23 @@ if ! grep -q '^\[zelixrepo\]' "$TARGET/etc/pacman.conf"; then
 SigLevel = Optional TrustAll
 Server = https://github.com/ZelixOS/zelix-repo/releases/download/stable
 EOF
+fi
+# Use the same application archives as the live ISO, even when the public
+# repository has not yet published this build.
+shopt -s nullglob
+local_apps=(/usr/share/zelix/packages/zelix-hello-*.pkg.tar.zst /usr/share/zelix/packages/zelix-updater-*.pkg.tar.zst)
+if (( ${#local_apps[@]} )); then
+    mkdir -p "$TARGET/var/cache/zelix-apps"
+    cp "${local_apps[@]}" "$TARGET/var/cache/zelix-apps/"
+    target_apps=()
+    for archive in "${local_apps[@]}"; do target_apps+=("/var/cache/zelix-apps/$(basename "$archive")"); done
+    arch-chroot "$TARGET" pacman -Syu --noconfirm
+    arch-chroot "$TARGET" pacman -U --noconfirm "${target_apps[@]}"
+    remaining=()
+    for package in "$@"; do
+        case "$package" in zelix-hello|zelix-updater) ;; *) remaining+=("$package");; esac
+    done
+    set -- "${remaining[@]}"
 fi
 if (( $# )); then
     # Package failures are critical; propagate the result to the installer UI.

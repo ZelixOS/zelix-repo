@@ -1,6 +1,6 @@
 pkgname=zelix-cli
 pkgver=1.2.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Unified command-line management tool for ZelixOS"
 arch=('any')
 url="https://github.com/ZelixOS"

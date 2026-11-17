@@ -1597,7 +1597,13 @@ class SummaryPage(InstallerPage):
                 "desktops": [desktop.slug for desktop in desktops_for(selected_desktops)], "greeter": greeter,
                 "bootloader": sys_page.selected_bootloader(),
                 "multilib": "true" if multilib_enabled else "false",
-                "packages": [pkg for pkg in extra_packages if pkg in ZELIX_PACKAGES],
+                # These are core Zelix desktop apps.  Install them through
+                # pacman after the Zelix repository is configured; never copy
+                # their files from zelixdeps.
+                "packages": list(dict.fromkeys(
+                    ["zelix-hello", "zelix-updater"] +
+                    [pkg for pkg in extra_packages if pkg in ZELIX_PACKAGES]
+                )),
             }
             self.main_window.install_config_path = config_path
             self.main_window.install_creds_path = creds_path

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ZelixPen
+Comment=Draw and annotate on screen
+Comment[tr]=Ekran üzerinde çizim ve işaretleme yapın
+Exec=zelixpen
+Icon=draw-freehand
+Terminal=false
+Categories=Graphics;Utility;
