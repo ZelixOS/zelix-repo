@@ -1,37 +1,37 @@
 # Zelix Hello
 
-ZelixOS için Python ve PyQt6 ile yazılmış karşılama ve sistem yönetimi uygulaması.
+A welcome and system management application for ZelixOS, written in Python and PyQt6.
 
-## Özellikler
+## Features
 
-- Sistem bilgileri ve proje bağlantıları.
-- Arch, Flatpak ve AUR kaynaklarından uygulama yönetimi.
-- Güncelleme, ayna ve bakım araçlarına erişim.
-- Sistem servisleri ve masaüstü ayarları.
-- Donanım algılama ve sürücü önerileri.
-- Türkçe ve İngilizce arayüz.
+- System information and project links.
+- Application management through Arch repositories, Flatpak, and the AUR.
+- Access to update, mirror, and maintenance tools.
+- System service and desktop settings.
+- Hardware detection and driver suggestions.
+- English and Turkish interface.
 
-## Kurulum
+## Installation
 
-Zelix deposunun yapılandırıldığı bir sistemde:
+On a system with the Zelix package repository configured:
 
 ```bash
 sudo pacman -Syu zelix-hello
 zelix-hello
 ```
 
-## Kaynaktan çalıştırma
+## Running from source
 
-Python, `python-pyqt6`, `qt6-svg` ve `polkit` gereklidir. Depo dizininde:
+Requires Python, `python-pyqt6`, `qt6-svg`, and `polkit`. From the project directory:
 
 ```bash
 python main.py
 ```
 
-Flatpak, AUR ve ayna işlemleri ilgili ek araçları gerektirir. Yetki isteyen işlemler masaüstü kimlik doğrulama aracını kullanır.
+Flatpak, AUR, and mirror operations require their respective tools. Privileged operations use the desktop authentication agent.
 
-## Kaynak düzeni
+## Source structure
 
-`tabs/` uygulama sayfalarını, `ui/` ana pencereyi ve stili, `utils/` yardımcı işlevleri ve çevirileri, `assets/` görselleri içerir.
+`tabs/` contains application pages, `ui/` contains the main window and styles, `utils/` contains helpers and translations, and `assets/` contains images and icons.
 
-Paket tarifi [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelix-hello) deposundadır.
+The package recipe is maintained in [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelix-hello).

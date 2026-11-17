@@ -1,32 +1,32 @@
 # ZelixPen
 
-Python ve PyQt6 ile yazılmış ekran üzerinde çizim ve işaretleme aracı.
+An on-screen drawing and annotation tool written in Python and PyQt6.
 
-## Özellikler
+## Features
 
-- Serbest çizim, çizgi, ok, dikdörtgen ve daire araçları.
-- Renk ve kalem kalınlığı seçimi.
-- Geri alma, yineleme ve çizimleri temizleme.
-- İmleç modunda alttaki uygulamalarla etkileşim.
-- Çizimleri saydam arka planlı PNG olarak kaydetme.
+- Freehand drawing, lines, arrows, rectangles, and circles.
+- Color and pen width selection.
+- Undo, redo, and clear actions.
+- Pointer mode for interacting with applications underneath.
+- Export drawings as PNG images with transparent backgrounds.
 
-## Kurulum
+## Installation
 
-Zelix deposunun yapılandırıldığı bir sistemde:
+On a system with the Zelix package repository configured:
 
 ```bash
 sudo pacman -Syu zelixpen
 zelixpen
 ```
 
-## Kaynaktan çalıştırma
+## Running from source
 
-Python ve `python-pyqt6` gereklidir:
+Requires Python and `python-pyqt6`:
 
 ```bash
 python main.py
 ```
 
-Araç çubuğundan çizim aracını seçin. İmleç düğmesiyle masaüstüne geçin; çizime dönmek için bir çizim aracı seçin. Pencere katmanı ve imleç davranışı kullanılan masaüstü oturumuna bağlıdır.
+Select a drawing tool from the toolbar. Switch to pointer mode to interact with the desktop; select a drawing tool to resume drawing. Window layering and pointer behavior depend on the desktop session.
 
-Paket tarifi [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelixpen) deposundadır.
+The package recipe is maintained in [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelixpen).

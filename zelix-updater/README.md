@@ -1,30 +1,30 @@
 # Zelix Updater
 
-ZelixOS için Python ve PyQt6 ile yazılmış sistem güncelleme uygulaması. Yapılandırılmış pacman depolarındaki güncellemeleri kontrol eder ve işlem çıktısını arayüzde gösterir.
+A system update application for ZelixOS, written in Python and PyQt6. It checks configured pacman repositories for updates and displays the operation output.
 
-## Kurulum
+## Installation
 
-Zelix deposunun yapılandırıldığı bir sistemde:
+On a system with the Zelix package repository configured:
 
 ```bash
 sudo pacman -Syu zelix-updater
 zelix-updater
 ```
 
-## Kullanım
+## Usage
 
-Güncellemeleri kontrol edin, ardından sistem güncellemesini başlatın. Güncelleme işlemi `pkexec` üzerinden yönetici yetkisi ister ve `pacman -Syu --noconfirm` çalıştırır. Pacman sorularında varsayılan yanıtlar kullanılır.
+Check for updates, then start the system update. Updating requests administrator privileges through `pkexec` and runs `pacman -Syu --noconfirm`. Pacman prompts use their default answers.
 
-AUR ve Flatpak güncellemeleri bu uygulamanın kapsamı dışındadır.
+AUR and Flatpak updates are outside this application's scope.
 
-## Kaynaktan çalıştırma
+## Running from source
 
-Python, `python-pyqt6`, `polkit`, `pacman-contrib` ve `fakeroot` gereklidir. Grafik oturumda bir Polkit kimlik doğrulama aracının çalışması gerekir.
+Requires Python, `python-pyqt6`, `polkit`, `pacman-contrib`, and `fakeroot`. A Polkit authentication agent must be available in the graphical session.
 
 ```bash
 python main.py
 ```
 
-Güncelleme kontrolü `checkupdates` aracını kullanır. Uygulama simgesi ve masaüstü girdisi kaynak dizininde bulunur.
+Update checks use `checkupdates`. The application icon and desktop entry are included in the source directory.
 
-Paket tarifi [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelix-updater) deposundadır.
+The package recipe is maintained in [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelix-updater).

@@ -1,44 +1,44 @@
-# ZelixOS Paket Deposu
+# ZelixOS Package Repository
 
-ZelixOS uygulamalarının paket tarifleri, paketleme kaynakları ve pacman depo indeksleri.
+Package recipes, packaging sources, and pacman repository indexes for ZelixOS applications.
 
-## Paketler
+## Packages
 
-| Dizin | İçerik |
+| Directory | Contents |
 | --- | --- |
-| `zelix-hello/` | Karşılama ve sistem yönetimi uygulaması |
-| `zelix-updater/` | Sistem güncelleme uygulaması |
-| `zelixins/` | Grafik kurucu |
-| `zelix-cli/` | Komut satırı yönetim aracı |
-| `zelixpen/` | Ekran üzerinde çizim aracı |
-| `paru/`, `yay/` | AUR yardımcılarının paket tarifleri |
-| `x86_64/` | Depo veritabanı ve dosya indeksi |
+| `zelix-hello/` | Welcome and system management application |
+| `zelix-updater/` | System update application |
+| `zelixins/` | Graphical installer |
+| `zelix-cli/` | Command-line management tool |
+| `zelixpen/` | On-screen drawing tool |
+| `paru/`, `yay/` | AUR helper package recipes |
+| `x86_64/` | Repository database and file index |
 
-## Kurulum
+## Installation
 
-ZelixOS'ta `zelixrepo` deposu yapılandırılmışsa:
+On ZelixOS with the `zelixrepo` repository configured:
 
 ```bash
 sudo pacman -Syu zelix-hello zelix-updater zelix-cli zelixpen
 ```
 
-Paket arşivleri ve depo indeksleri [stable yayınından](https://github.com/ZelixOS/zelix-repo/releases/tag/stable) dağıtılır. Büyük paket dosyaları Git kaynak ağacı yerine yayın dosyalarında tutulur.
+Package archives and repository indexes are distributed through the [stable release](https://github.com/ZelixOS/zelix-repo/releases/tag/stable). Large package archives are stored as release assets rather than in the Git source tree.
 
-## Paket oluşturma
+## Building packages
 
-Arch Linux veya ZelixOS üzerinde `base-devel` ve ilgili PKGBUILD dosyasındaki bağımlılıklar gereklidir. İlgili paket dizininde normal kullanıcıyla çalıştırın:
+Use Arch Linux or ZelixOS with `base-devel` and the dependencies listed in the relevant PKGBUILD. Run this command as a regular user from the package directory:
 
 ```bash
 makepkg -s
 ```
 
-ZelixOS geliştirme çalışma alanında uygulama kaynakları ana dizinlerden eşitlenir. Kaynak değişikliklerini orada yapın; paket tariflerini bu depoda düzenleyin.
+In the ZelixOS development workspace, application sources are synchronized from their main directories. Edit application code there and package recipes in this repository.
 
-## İndeks ve yayın
+## Indexing and publishing
 
-`repo-add` ile yayınlanacak paketlerin indeksini oluşturun. Paket arşivlerini ve SHA256 dosyalarını önce yükleyin. İndekste belirtilen her paketin GitHub'da bulunduğunu ve SHA256 değerinin eşleştiğini doğruladıktan sonra şu dosyaları yayınlayın:
+Use `repo-add` to generate an index of the packages being published. Upload package archives and SHA256 files first. Verify that every indexed package exists on GitHub and matches its indexed SHA256 before publishing these files:
 
-- `zelixrepo.db` ve `zelixrepo.db.tar.gz`
-- `zelixrepo.files` ve `zelixrepo.files.tar.gz`
+- `zelixrepo.db` and `zelixrepo.db.tar.gz`
+- `zelixrepo.files` and `zelixrepo.files.tar.gz`
 
-Depodaki `Publish Zelixins` GitHub Actions işi yalnızca kurucu paketini derlemek ve yayınlamak için elle başlatılabilir.
+The manually triggered `Publish Zelixins` GitHub Actions workflow builds and publishes the installer package only.

@@ -1,37 +1,37 @@
 # Zelix CLI
 
-ZelixOS için Bash ile yazılmış komut satırı yönetim aracı. Sistem güncellemesi, bakım ve yardımcı uygulamalara erişim sağlar.
+A command-line management tool for ZelixOS, written in Bash. It provides system updates, maintenance commands, and access to companion applications.
 
-## Kurulum
+## Installation
 
-Zelix deposunun yapılandırıldığı bir sistemde:
+On a system with the Zelix package repository configured:
 
 ```bash
 sudo pacman -Syu zelix-cli
 zelix help
 ```
 
-## Komutlar
+## Commands
 
-| Komut | İşlem |
+| Command | Action |
 | --- | --- |
-| `zelix update` | Sistem, mevcut AUR yardımcısı ve Flatpak üzerinden güncelleme |
-| `zelix mirrors` | Paket aynalarını düzenleme |
-| `zelix clean` | Paket önbelleği ve sahipsiz paket bakımı |
-| `zelix flathub` | Flathub desteğini yapılandırma |
-| `zelix info` | Sistem bilgilerini gösterme |
-| `zelix hello` | Zelix Hello uygulamasını açma |
-| `zelix lang tr` | Arayüz dilini Türkçe yapma |
-| `zelix lang en` | Arayüz dilini İngilizce yapma |
+| `zelix update` | Update the system, using an available AUR helper, and Flatpak |
+| `zelix mirrors` | Configure package mirrors |
+| `zelix clean` | Maintain the package cache and orphaned packages |
+| `zelix flathub` | Configure Flathub support |
+| `zelix info` | Display system information |
+| `zelix hello` | Open Zelix Hello |
+| `zelix lang tr` | Use the Turkish interface |
+| `zelix lang en` | Use the English interface |
 
-## Bağımlılıklar
+## Dependencies
 
-Bash, pacman ve sudo gereklidir. Kullanılan komuta göre Flatpak, rate-mirrors, fastfetch, Paru, Yay veya Zelix Hello gerekir. Dil tercihi XDG yapılandırma dizinindeki `zelix/cli.conf` dosyasında tutulur; varsayılan konum `~/.config/zelix/cli.conf` olur.
+Requires Bash, pacman, and sudo. Depending on the command, Flatpak, rate-mirrors, fastfetch, Paru, Yay, or Zelix Hello may also be needed. The language preference is stored in `zelix/cli.conf` under the XDG configuration directory, which defaults to `~/.config/zelix/cli.conf`.
 
-## Kaynaktan kullanım
+## Running from source
 
 ```bash
 bash zelix help
 ```
 
-Paketi oluşturmak için normal kullanıcıyla `makepkg -s` çalıştırın.
+Build the package as a regular user with `makepkg -s`.

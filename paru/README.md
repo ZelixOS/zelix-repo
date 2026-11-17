@@ -1,24 +1,24 @@
-# Paru paket tarifi
+# Paru Package Recipe
 
-Paru, Arch Linux için Rust ile yazılmış bir AUR yardımcısıdır. Bu dizin ZelixOS deposunda dağıtılan paketin PKGBUILD dosyasını içerir.
+Paru is an AUR helper for Arch Linux, written in Rust. This directory contains the PKGBUILD used to distribute it through the ZelixOS package repository.
 
-## Derleme
+## Building
 
-Arch Linux veya ZelixOS üzerinde `base-devel`, Cargo ve PKGBUILD dosyasında belirtilen bağımlılıklar gereklidir. Normal kullanıcıyla:
+Use Arch Linux or ZelixOS with `base-devel`, Cargo, and the dependencies listed in the PKGBUILD. Run as a regular user:
 
 ```bash
 makepkg -s
 ```
 
-Derleme kaynakları PKGBUILD dosyasındaki upstream adresinden alınır. Sürüm ve kaynak doğrulama değerleri aynı dosyada tutulur.
+Sources are downloaded from the upstream URL specified in the PKGBUILD. The same file defines the package version and source checksums.
 
-## Kullanım
+## Usage
 
-Zelix deposunun yapılandırıldığı bir sistemde:
+On a system with the Zelix package repository configured:
 
 ```bash
 sudo pacman -Syu paru
 paru --help
 ```
 
-AUR paketlerinin tariflerini kurulumdan önce inceleyin.
+Review AUR package recipes before installation.
