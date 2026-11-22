@@ -1,17 +1,16 @@
 # PKGBUILD - ZelixOS GUI Installer
 pkgname=zelixins
-pkgver=1.2.2
-pkgrel=9
+pkgver=1.3.0
+pkgrel=1
 pkgdesc="Official graphical installer for ZelixOS"
 arch=('any')
 options=('!debug' '!strip')
 url="https://github.com/ZelixOS/zelixins"
 license=('GPL')
-depends=('python' 'python-pyqt6' 'qt6-imageformats' 'archinstall' 'arch-install-scripts' 'polkit' 'util-linux')
+depends=('python' 'python-pyqt6' 'qt6-translations' 'qt6-imageformats' 'archinstall' 'arch-install-scripts' 'polkit' 'util-linux' 'cryptsetup' 'btrfs-progs' 'e2fsprogs' 'xfsprogs' 'f2fs-tools')
 
-source=("myself.py" "installer_support.py" "desktop_catalog.py" "desktop_page.py"
-        "desktop_setup.py" "desktop_theme.py" "zelix-installer.desktop" "zelix_post_install.sh")
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+source=()
+sha256sums=()
 
 package() {
     # 1. Gerekli sistem dizinlerini oluştur
@@ -20,7 +19,8 @@ package() {
     install -d "$pkgdir/usr/bin"
 
     # 2. Tüm kaynak dosyalarını /usr/share/zelixins altına kopyala
-    cp -rp "$startdir/myself.py" "$startdir/installer_support.py" "$startdir/desktop_catalog.py" "$startdir/desktop_page.py" "$startdir/desktop_setup.py" "$startdir/desktop_theme.py" "$startdir/icons" "$startdir/previews" "$startdir/backgrounds" "$startdir/zelixdeps" "$startdir/zelix_post_install.sh" "$pkgdir/usr/share/zelixins/"
+    cp -a --no-preserve=ownership "$startdir"/*.py "$startdir"/*.sh "$pkgdir/usr/share/zelixins/"
+    cp -a --no-preserve=ownership "$startdir/icons" "$startdir/previews" "$startdir/backgrounds" "$startdir/zelixdeps" "$pkgdir/usr/share/zelixins/"
 
     find "$pkgdir/usr/share/zelixins" -type d -name __pycache__ -prune -exec rm -rf {} +
 

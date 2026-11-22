@@ -30,3 +30,7 @@ python main.py
 Select a drawing tool from the toolbar. Switch to pointer mode to interact with the desktop; select a drawing tool to resume drawing. Window layering and pointer behavior depend on the desktop session.
 
 The package recipe is maintained in [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelixpen).
+
+## Languages
+
+English, Turkish, and Spanish are supported. Use the language selector to change the interface; the choice is saved for future sessions. The initial language follows `LC_ALL`, `LC_MESSAGES`, then `LANG`. External command output and native dialogs can follow the system locale.

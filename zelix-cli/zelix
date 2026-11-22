@@ -1,42 +1,158 @@
 #!/usr/bin/env bash
-#
-# ZelixOS Management CLI (zelix)
-# Simple, fast, and unified system management tool for ZelixOS.
-# Monochrome / Black & White Minimalist Theme
-# Multilingual (English default, Turkish supported)
-#
-
+# ZelixOS command-line management. English, Turkish, and Spanish.
 set -e
-
-# Configuration directory & file
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zelix"
 CONFIG_FILE="$CONFIG_DIR/cli.conf"
 
-# Detect Language
 detect_language() {
-    if [[ -f "$CONFIG_FILE" ]]; then
-        source "$CONFIG_FILE"
+    # Read only the supported preference; never execute a configuration file.
+    if [[ -z ${ZELIX_LANG:-} && -f $CONFIG_FILE ]]; then
+        while IFS= read -r line; do
+            case "$line" in
+                'ZELIX_LANG="en"'|'ZELIX_LANG=en') ZELIX_LANG=en;;
+                'ZELIX_LANG="tr"'|'ZELIX_LANG=tr') ZELIX_LANG=tr;;
+                'ZELIX_LANG="es"'|'ZELIX_LANG=es') ZELIX_LANG=es;;
+            esac
+            [[ -z ${ZELIX_LANG:-} ]] || break
+        done < "$CONFIG_FILE"
     fi
-
-    if [[ -z "$ZELIX_LANG" ]]; then
-        if [[ "$LANG" =~ ^tr ]] || [[ "$LC_MESSAGES" =~ ^tr ]]; then
-            ZELIX_LANG="tr"
-        else
-            ZELIX_LANG="en"
-        fi
+    if [[ -z ${ZELIX_LANG:-} ]]; then
+        local locale_value=${LC_ALL:-${LC_MESSAGES:-${LANG:-en}}}
+        case ${locale_value,,} in tr*) ZELIX_LANG=tr;; es*) ZELIX_LANG=es;; *) ZELIX_LANG=en;; esac
     fi
+    ZELIX_LANG=${ZELIX_LANG,,}
+    case $ZELIX_LANG in en|tr|es) ;; *) ZELIX_LANG=en;; esac
 }
-
 detect_language
+C_RESET="\e[0m" C_BOLD="\e[1m" C_WHITE="\e[97m" C_LIGHT_GRAY="\e[37m" C_GRAY="\e[90m"
+declare -A MSG_EN=(
+    [title]='Control Center CLI'
+    [language_set]='Zelix CLI language set to English.'
+    [language_usage]='Usage: zelix lang [en|tr|es]'
+    [usage]=Usage:
+    [usage_arguments]='zelix <command> [options]'
+    [commands]=Commands:
+    [help_update]='Update system, Flatpak, and AUR packages'
+    [help_mirrors]='Rank and optimize download mirrors'
+    [help_clean]='Clean package cache and orphaned packages'
+    [help_flathub]='Configure Flathub support'
+    [help_info]='Display system information'
+    [help_hello]='Open Zelix Hello'
+    [help_language]='Change the interface language'
+    [help_help]='Display this help'
+    [updating]='Updating system packages…'
+    [flatpak_updating]='Updating Flatpak packages…'
+    [update_done]='Update complete.'
+    [mirrors_running]='Ranking and optimizing mirrors…'
+    [country]='Detected country: %s'
+    [mirrors_done]='/etc/pacman.d/mirrorlist updated.'
+    [mirrors_missing]='rate-mirrors not found. Installing…'
+    [cleaning]='Cleaning package cache…'
+    [orphans_scanning]='Scanning for orphaned packages…'
+    [orphans_remove]='Packages to remove: %s'
+    [no_orphans]='No orphaned packages found.'
+    [clean_done]='Cleanup complete.'
+    [flathub_configuring]='Configuring Flathub…'
+    [flatpak_installing]='Installing Flatpak…'
+    [flathub_done]='Flathub repository enabled.'
+    [system_summary]='System summary:'
+    [os]=OS
+    [kernel]=Kernel
+    [uptime]=Uptime
+    [desktop]=Desktop
+    [memory]='Memory (RAM)'
+    [hello_missing]='zelix-hello could not be found.'
+    [unknown]='Unknown command: %s'
+)
+declare -A MSG_TR=(
+    [title]='Kontrol Merkezi CLI'
+    [language_set]='Zelix CLI dili Türkçe olarak ayarlandı.'
+    [language_usage]='Kullanım: zelix lang [en|tr|es]'
+    [usage]='Kullanım:'
+    [usage_arguments]='zelix <komut> [seçenekler]'
+    [commands]=Komutlar:
+    [help_update]='Sistemi, Flatpak ve AUR paketlerini güncelle'
+    [help_mirrors]='İndirme yansılarını sırala ve düzenle'
+    [help_clean]='Paket önbelleğini ve sahipsiz paketleri temizle'
+    [help_flathub]='Flathub desteğini yapılandır'
+    [help_info]='Sistem bilgilerini göster'
+    [help_hello]='Zelix Hello uygulamasını aç'
+    [help_language]='Arayüz dilini değiştir'
+    [help_help]='Bu yardımı göster'
+    [updating]='Sistem paketleri güncelleniyor…'
+    [flatpak_updating]='Flatpak paketleri güncelleniyor…'
+    [update_done]='Güncelleme tamamlandı.'
+    [mirrors_running]='Yansılar test ediliyor ve düzenleniyor…'
+    [country]='Algılanan ülke: %s'
+    [mirrors_done]='/etc/pacman.d/mirrorlist güncellendi.'
+    [mirrors_missing]='rate-mirrors bulunamadı. Kuruluyor…'
+    [cleaning]='Paket önbelleği temizleniyor…'
+    [orphans_scanning]='Sahipsiz paketler taranıyor…'
+    [orphans_remove]='Kaldırılacak paketler: %s'
+    [no_orphans]='Sahipsiz paket bulunamadı.'
+    [clean_done]='Temizlik tamamlandı.'
+    [flathub_configuring]='Flathub yapılandırılıyor…'
+    [flatpak_installing]='Flatpak kuruluyor…'
+    [flathub_done]='Flathub deposu etkinleştirildi.'
+    [system_summary]='Sistem özeti:'
+    [os]='İşletim sistemi'
+    [kernel]='Çekirdek'
+    [uptime]='Çalışma süresi'
+    [desktop]='Masaüstü'
+    [memory]='Bellek (RAM)'
+    [hello_missing]='zelix-hello bulunamadı.'
+    [unknown]='Bilinmeyen komut: %s'
+)
+declare -A MSG_ES=(
+    [title]='Centro de control CLI'
+    [language_set]='El idioma de Zelix CLI se ha cambiado a español.'
+    [language_usage]='Uso: zelix lang [en|tr|es]'
+    [usage]=Uso:
+    [usage_arguments]='zelix <comando> [opciones]'
+    [commands]=Comandos:
+    [help_update]='Actualizar el sistema, Flatpak y los paquetes del AUR'
+    [help_mirrors]='Ordenar y optimizar los servidores de descarga'
+    [help_clean]='Limpiar la caché y los paquetes huérfanos'
+    [help_flathub]='Configurar Flathub'
+    [help_info]='Mostrar información del sistema'
+    [help_hello]='Abrir Zelix Hello'
+    [help_language]='Cambiar el idioma de la interfaz'
+    [help_help]='Mostrar esta ayuda'
+    [updating]='Actualizando los paquetes del sistema…'
+    [flatpak_updating]='Actualizando los paquetes Flatpak…'
+    [update_done]='Actualización completada.'
+    [mirrors_running]='Comprobando y optimizando servidores…'
+    [country]='País detectado: %s'
+    [mirrors_done]='Se ha actualizado /etc/pacman.d/mirrorlist.'
+    [mirrors_missing]='No se encontró rate-mirrors. Instalando…'
+    [cleaning]='Limpiando la caché de paquetes…'
+    [orphans_scanning]='Buscando paquetes huérfanos…'
+    [orphans_remove]='Paquetes que se eliminarán: %s'
+    [no_orphans]='No se encontraron paquetes huérfanos.'
+    [clean_done]='Limpieza completada.'
+    [flathub_configuring]='Configurando Flathub…'
+    [flatpak_installing]='Instalando Flatpak…'
+    [flathub_done]='Se ha activado el repositorio Flathub.'
+    [system_summary]='Resumen del sistema:'
+    [os]='Sistema operativo'
+    [kernel]='Núcleo'
+    [uptime]='Tiempo de actividad'
+    [desktop]=Escritorio
+    [memory]='Memoria (RAM)'
+    [hello_missing]='No se encontró zelix-hello.'
+    [unknown]='Comando desconocido: %s'
+)
 
-# Monochrome Color Palette
-C_RESET="\e[0m"
-C_BOLD="\e[1m"
-C_DIM="\e[2m"
-C_WHITE="\e[97m"
-C_LIGHT_GRAY="\e[37m"
-C_GRAY="\e[90m"
-C_DARK_GRAY="\e[38;5;238m"
+t() {
+    local key=$1 text
+    shift
+    case "$ZELIX_LANG" in
+        tr) text=${MSG_TR[$key]:-${MSG_EN[$key]:-$key}};;
+        es) text=${MSG_ES[$key]:-${MSG_EN[$key]:-$key}};;
+        *) text=${MSG_EN[$key]:-$key};;
+    esac
+    printf -- "$text" "$@"
+}
 
 print_banner() {
     echo -e "${C_BOLD}${C_WHITE}"
@@ -47,94 +163,56 @@ print_banner() {
  / /_|  __/| | |>  <| |_| |___) |
 /____|\___||_|_/_/\_\\___/|____/
 BANNER
-    echo -e "${C_WHITE}${C_BOLD}ZelixOS${C_RESET} ${C_LIGHT_GRAY}Control Center CLI${C_RESET} ${C_GRAY}(v1.2.0 - Monochrome)${C_RESET}\n"
+    echo -e "${C_WHITE}${C_BOLD}ZelixOS${C_RESET} ${C_LIGHT_GRAY}$(t title)${C_RESET} ${C_GRAY}(v1.3.0)${C_RESET}\n"
 }
 
 set_language() {
-    local target="$1"
+    local code=${1,,}
+    case "$code" in
+        en|english) code=en;; tr|turkish|türkçe) code=tr;; es|spanish|español) code=es;;
+        *) t language_usage; echo; return 2;;
+    esac
     mkdir -p "$CONFIG_DIR"
-    if [[ "$target" == "tr" || "$target" == "turkish" ]]; then
-        echo "ZELIX_LANG=\"tr\"" > "$CONFIG_FILE"
-        echo -e "${C_BOLD}${C_WHITE}[OK] Zelix CLI dili Türkçe olarak ayarlandı.${C_RESET}"
-    elif [[ "$target" == "en" || "$target" == "english" ]]; then
-        echo "ZELIX_LANG=\"en\"" > "$CONFIG_FILE"
-        echo -e "${C_BOLD}${C_WHITE}[OK] Zelix CLI language set to English.${C_RESET}"
-    else
-        echo -e "${C_LIGHT_GRAY}Usage / Kullanım: ${C_WHITE}zelix lang [en|tr]${C_RESET}"
-    fi
+    local preference_file
+    preference_file=$(mktemp "$CONFIG_DIR/.cli-language.XXXXXXXX")
+    printf 'ZELIX_LANG="%s"\n' "$code" > "$preference_file"
+    mv -- "$preference_file" "$CONFIG_FILE"
+    ZELIX_LANG=$code
+    echo -e "${C_WHITE}[OK] $(t language_set)${C_RESET}"
 }
 
 print_help() {
     print_banner
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "${C_BOLD}${C_WHITE}Kullanım:${C_RESET}"
-        echo -e "  ${C_LIGHT_GRAY}zelix <komut> [seçenekler]${C_RESET}\n"
-        echo -e "${C_BOLD}${C_WHITE}Komutlar:${C_RESET}"
-        echo -e "  ${C_BOLD}${C_WHITE}update, u${C_RESET}     ${C_LIGHT_GRAY}Sistemi, Flatpak ve AUR paketlerini güncelle${C_RESET}"
-        echo -e "  ${C_BOLD}${C_WHITE}mirrors, m${C_RESET}    En hızlı yansıları seç ve hızlandır (Rate mirrors)"
-        echo -e "  ${C_BOLD}${C_WHITE}clean, c${C_RESET}      Önbellek ve gereksiz (orphan) paketleri temizle"
-        echo -e "  ${C_BOLD}${C_WHITE}flathub, f${C_RESET}    Flathub / Flatpak deposunu sisteme ekle"
-        echo -e "  ${C_BOLD}${C_WHITE}info, i${C_RESET}       Sistem ve donanım bilgilerini göster"
-        echo -e "  ${C_BOLD}${C_WHITE}hello, h${C_RESET}      Zelix Hello karşılama uygulamasını başlat"
-        echo -e "  ${C_BOLD}${C_WHITE}lang [en|tr]${C_RESET}  CLI arayüz dilini değiştir (Switch language)"
-        echo -e "  ${C_BOLD}${C_WHITE}help, -h${C_RESET}      Bu yardım menüsünü görüntüle\n"
-    else
-        echo -e "${C_BOLD}${C_WHITE}Usage:${C_RESET}"
-        echo -e "  ${C_LIGHT_GRAY}zelix <command> [options]${C_RESET}\n"
-        echo -e "${C_BOLD}${C_WHITE}Commands:${C_RESET}"
-        echo -e "  ${C_BOLD}${C_WHITE}update, u${C_RESET}     ${C_LIGHT_GRAY}Update system, Flatpaks, and AUR packages${C_RESET}"
-        echo -e "  ${C_BOLD}${C_WHITE}mirrors, m${C_RESET}    Rank and optimize fastest mirrors (rate-mirrors)"
-        echo -e "  ${C_BOLD}${C_WHITE}clean, c${C_RESET}      Clean package cache and remove orphaned packages"
-        echo -e "  ${C_BOLD}${C_WHITE}flathub, f${C_RESET}    Enable Flathub repository support"
-        echo -e "  ${C_BOLD}${C_WHITE}info, i${C_RESET}       Display system and hardware info"
-        echo -e "  ${C_BOLD}${C_WHITE}hello, h${C_RESET}      Launch Zelix Hello welcome app"
-        echo -e "  ${C_BOLD}${C_WHITE}lang [en|tr]${C_RESET}  Change CLI language (Dil seçimi)"
-        echo -e "  ${C_BOLD}${C_WHITE}help, -h${C_RESET}      Display this help menu\n"
-    fi
+    echo -e "${C_BOLD}${C_WHITE}$(t usage)${C_RESET}"
+    echo "  $(t usage_arguments)"
+    echo
+    echo -e "${C_BOLD}${C_WHITE}$(t commands)${C_RESET}"
+    local pair command key
+    for pair in 'update, u:help_update' 'mirrors, m:help_mirrors' 'clean, c:help_clean' 'flathub, f:help_flathub' 'info, i:help_info' 'hello, h:help_hello' 'lang [en|tr|es]:help_language' 'help, -h:help_help'; do
+        command=${pair%%:*}; key=${pair#*:}
+        printf '  %-19s %s\n' "$command" "$(t "$key")"
+    done
+    echo
 }
 
 do_update() {
     print_banner
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Sistem güncelleniyor...${C_RESET}"
-    else
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Updating system packages...${C_RESET}"
-    fi
-
-    if command -v paru &>/dev/null; then
-        paru -Syu
-    elif command -v yay &>/dev/null; then
-        yay -Syu
-    else
-        sudo pacman -Syu
-    fi
-
+    echo -e "${C_WHITE}==> $(t updating)${C_RESET}"
+    if command -v paru &>/dev/null; then paru -Syu
+    elif command -v yay &>/dev/null; then yay -Syu
+    else sudo pacman -Syu; fi
     if command -v flatpak &>/dev/null; then
-        if [[ "$ZELIX_LANG" == "tr" ]]; then
-            echo -e "\n${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Flatpak paketleri güncelleniyor...${C_RESET}"
-        else
-            echo -e "\n${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Updating Flatpak packages...${C_RESET}"
-        fi
+        echo -e "\n${C_WHITE}==> $(t flatpak_updating)${C_RESET}"
         flatpak update -y || true
     fi
-
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "\n${C_BOLD}${C_WHITE}[OK] Güncelleme tamamlandı.${C_RESET}"
-    else
-        echo -e "\n${C_BOLD}${C_WHITE}[OK] Update complete.${C_RESET}"
-    fi
+    echo -e "\n${C_WHITE}[OK] $(t update_done)${C_RESET}"
 }
 
 do_mirrors() {
     print_banner
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Yansılar test ediliyor ve optimize ediliyor...${C_RESET}"
-    else
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Ranking and optimizing mirrors...${C_RESET}"
-    fi
-
+    echo -e "${C_WHITE}==> $(t mirrors_running)${C_RESET}"
     if command -v rate-mirrors &>/dev/null; then
-        local country=""
+        local country="" var val
         for var in LANG LC_ADDRESS LC_ALL; do
             val="${!var}"
             if [[ -n "$val" && "$val" == *"_"* ]]; then
@@ -142,133 +220,68 @@ do_mirrors() {
                 break
             fi
         done
-
         if [[ -n "$country" && ${#country} -eq 2 ]]; then
-            echo -e "${C_LIGHT_GRAY}Detected country:${C_RESET} ${C_BOLD}${C_WHITE}$country${C_RESET}"
+            echo "$(t country "$country")"
             rate-mirrors --allow-root --entry-country "$country" arch | sudo tee /etc/pacman.d/mirrorlist > /dev/null
         else
             rate-mirrors --allow-root arch | sudo tee /etc/pacman.d/mirrorlist > /dev/null
         fi
-
-        if [[ "$ZELIX_LANG" == "tr" ]]; then
-            echo -e "${C_BOLD}${C_WHITE}[OK] /etc/pacman.d/mirrorlist güncellendi.${C_RESET}"
-        else
-            echo -e "${C_BOLD}${C_WHITE}[OK] /etc/pacman.d/mirrorlist updated.${C_RESET}"
-        fi
+        echo -e "${C_WHITE}[OK] $(t mirrors_done)${C_RESET}"
     else
-        echo -e "${C_LIGHT_GRAY}rate-mirrors not found. Installing...${C_RESET}"
+        echo "$(t mirrors_missing)"
         sudo pacman -S --noconfirm rate-mirrors-bin 2>/dev/null || (command -v paru &>/dev/null && paru -S --noconfirm rate-mirrors-bin) || (command -v yay &>/dev/null && yay -S --noconfirm rate-mirrors-bin) || sudo pacman -S --noconfirm reflector
     fi
 }
 
 do_clean() {
     print_banner
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Paket önbelleği temizleniyor...${C_RESET}"
-    else
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Cleaning package cache...${C_RESET}"
-    fi
+    echo -e "${C_WHITE}==> $(t cleaning)${C_RESET}"
     sudo pacman -Sc --noconfirm
-
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "\n${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Gereksiz (orphan) paketler taranıyor...${C_RESET}"
-    else
-        echo -e "\n${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Scanning for orphaned packages...${C_RESET}"
-    fi
-
+    echo -e "\n${C_WHITE}==> $(t orphans_scanning)${C_RESET}"
     local orphans
     orphans=$(pacman -Qdtq || true)
     if [[ -n "$orphans" ]]; then
-        echo -e "${C_LIGHT_GRAY}Packages to remove:${C_RESET} ${C_WHITE}$orphans${C_RESET}"
+        echo "$(t orphans_remove "$orphans")"
         echo "$orphans" | sudo pacman -Rns - --noconfirm
     else
-        if [[ "$ZELIX_LANG" == "tr" ]]; then
-            echo -e "${C_LIGHT_GRAY}Gereksiz paket bulunamadı.${C_RESET}"
-        else
-            echo -e "${C_LIGHT_GRAY}No orphaned packages found.${C_RESET}"
-        fi
+        echo "$(t no_orphans)"
     fi
-
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "\n${C_BOLD}${C_WHITE}[OK] Temizlik tamamlandı.${C_RESET}"
-    else
-        echo -e "\n${C_BOLD}${C_WHITE}[OK] Cleanup complete.${C_RESET}"
-    fi
+    echo -e "\n${C_WHITE}[OK] $(t clean_done)${C_RESET}"
 }
 
 do_flathub() {
     print_banner
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Flathub deposu yapılandırılıyor...${C_RESET}"
-    else
-        echo -e "${C_BOLD}${C_WHITE}==>${C_RESET} ${C_BOLD}Configuring Flathub repository...${C_RESET}"
-    fi
-
+    echo -e "${C_WHITE}==> $(t flathub_configuring)${C_RESET}"
     if ! command -v flatpak &>/dev/null; then
-        echo -e "${C_LIGHT_GRAY}Installing flatpak...${C_RESET}"
+        echo "$(t flatpak_installing)"
         sudo pacman -S --noconfirm flatpak
     fi
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-    if [[ "$ZELIX_LANG" == "tr" ]]; then
-        echo -e "${C_BOLD}${C_WHITE}[OK] Flathub deposu etkinleştirildi.${C_RESET}"
-    else
-        echo -e "${C_BOLD}${C_WHITE}[OK] Flathub repository enabled.${C_RESET}"
-    fi
+    echo -e "${C_WHITE}[OK] $(t flathub_done)${C_RESET}"
 }
 
 do_info() {
-    if command -v fastfetch &>/dev/null; then
-        fastfetch
+    if command -v fastfetch &>/dev/null; then fastfetch
     else
         print_banner
-        echo -e "${C_BOLD}${C_WHITE}System Summary:${C_RESET}"
-        echo -e "  ${C_GRAY}OS:${C_RESET} ${C_WHITE}$(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '\"' || echo 'ZelixOS')${C_RESET}"
-        echo -e "  ${C_GRAY}Kernel:${C_RESET} ${C_WHITE}$(uname -r)${C_RESET}"
-        echo -e "  ${C_GRAY}Uptime:${C_RESET} ${C_WHITE}$(uptime -p 2>/dev/null || uptime)${C_RESET}"
-        echo -e "  ${C_GRAY}Desktop (DE):${C_RESET} ${C_WHITE}${XDG_CURRENT_DESKTOP:-KDE Plasma}${C_RESET}"
-        echo -e "  ${C_GRAY}Memory (RAM):${C_RESET} ${C_WHITE}$(free -h | awk '/^Mem:/ {print $3 "/" $2}')${C_RESET}"
+        echo -e "${C_BOLD}${C_WHITE}$(t system_summary)${C_RESET}"
+        echo "  $(t os): $(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '\"' || echo 'ZelixOS')"
+        echo "  $(t kernel): $(uname -r)"
+        echo "  $(t uptime): $(uptime -p 2>/dev/null || uptime)"
+        echo "  $(t desktop): ${XDG_CURRENT_DESKTOP:-KDE Plasma}"
+        echo "  $(t memory): $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
     fi
 }
 
 do_hello() {
-    if command -v zelix-hello &>/dev/null; then
-        zelix-hello &
-    elif [[ -f /usr/share/zelix-hello/main.py ]]; then
-        python /usr/share/zelix-hello/main.py &
-    else
-        echo -e "${C_LIGHT_GRAY}[!] zelix-hello could not be found.${C_RESET}"
-    fi
+    if command -v zelix-hello &>/dev/null; then zelix-hello &
+    elif [[ -f /usr/share/zelix-hello/main.py ]]; then python /usr/share/zelix-hello/main.py &
+    else echo "$(t hello_missing)"; fi
 }
 
 case "${1:-help}" in
-    update|u)
-        do_update
-        ;;
-    mirrors|m)
-        do_mirrors
-        ;;
-    clean|c)
-        do_clean
-        ;;
-    flathub|flatpak|f)
-        do_flathub
-        ;;
-    info|i)
-        do_info
-        ;;
-    hello|h)
-        do_hello
-        ;;
-    lang|language)
-        set_language "$2"
-        ;;
-    help|-h|--help)
-        print_help
-        ;;
-    *)
-        echo -e "${C_LIGHT_GRAY}[!] Unknown command:${C_RESET} ${C_WHITE}$1${C_RESET}\n"
-        print_help
-        exit 1
-        ;;
+    update|u) do_update;; mirrors|m) do_mirrors;; clean|c) do_clean;;
+    flathub|flatpak|f) do_flathub;; info|i) do_info;; hello|h) do_hello;;
+    lang|language) set_language "${2:-}";; help|-h|--help) print_help;;
+    *) echo "$(t unknown "$1")"; print_help; exit 1;;
 esac

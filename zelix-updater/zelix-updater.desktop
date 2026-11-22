@@ -7,3 +7,4 @@ Exec=python /usr/share/zelix-updater/main.py
 Icon=/usr/share/zelix/zelix-updater.png
 Terminal=false
 Categories=System;Installer;
+Comment[es]=Actualizar el sistema

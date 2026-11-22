@@ -7,3 +7,4 @@ Exec=zelix-hello
 Icon=/usr/share/zelix/zelix-icon.png
 Terminal=false
 Categories=System;Installer;
+Comment[es]=Bienvenida, aplicaciones y herramientas del sistema

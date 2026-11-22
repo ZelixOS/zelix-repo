@@ -23,6 +23,7 @@ zelix help
 | `zelix hello` | Open Zelix Hello |
 | `zelix lang tr` | Use the Turkish interface |
 | `zelix lang en` | Use the English interface |
+| `zelix lang es` | Use the Spanish interface |
 
 ## Dependencies
 

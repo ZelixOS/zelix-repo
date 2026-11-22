@@ -24,7 +24,7 @@ class ReadmeDialog(QDialog):
         self.setWindowTitle(Translator.get("readme_title"))
         self.setMinimumSize(680, 520)
         self.resize(750, 580)
-        self.current_lang = "tr" if "turkish" in Translator.get_language().lower() else "en"
+        self.current_lang = {'Turkish':'tr', 'Spanish':'es'}.get(Translator.get_language(), 'en')
         self._init_ui()
 
     def _init_ui(self):
@@ -66,10 +66,7 @@ class ReadmeDialog(QDialog):
 
     def get_readme_path(self, lang):
         app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if lang == "tr":
-            filenames = ["readme_tr.txt", "readme.txt"]
-        else:
-            filenames = ["readme_en.txt", "readme.txt"]
+        filenames = [f'readme_{lang}.txt', 'readme_en.txt', 'readme.txt']
 
         for fn in filenames:
             local = os.path.join(app_dir, fn)
@@ -81,10 +78,9 @@ class ReadmeDialog(QDialog):
         return None
 
     def update_content(self):
-        if self.current_lang == "tr":
-            self.btn_lang.setText("English")
-        else:
-            self.btn_lang.setText("Türkçe")
+        languages = ('en', 'tr', 'es')
+        next_language = languages[(languages.index(self.current_lang) + 1) % len(languages)]
+        self.btn_lang.setText({'en':'English', 'tr':'Türkçe', 'es':'Español'}[next_language])
 
         path = self.get_readme_path(self.current_lang)
         if path and os.path.exists(path):
@@ -92,12 +88,13 @@ class ReadmeDialog(QDialog):
                 with open(path, "r", encoding="utf-8") as f:
                     self.text_view.setPlainText(f.read())
             except Exception as e:
-                self.text_view.setPlainText(f"Hata: {e}")
+                self.text_view.setPlainText(Translator.get('readme_error').format(error=e))
         else:
-            self.text_view.setPlainText("Readme dosyası bulunamadı / Readme file not found.")
+            self.text_view.setPlainText(Translator.get('readme_missing'))
 
     def toggle_language(self):
-        self.current_lang = "en" if self.current_lang == "tr" else "tr"
+        languages = ('en', 'tr', 'es')
+        self.current_lang = languages[(languages.index(self.current_lang) + 1) % len(languages)]
         self.update_content()
 
     def open_external(self):
@@ -196,6 +193,7 @@ class DashboardTab(QWidget):
         self.lang_combo = QComboBox()
         self.lang_combo.addItem("English", "English")
         self.lang_combo.addItem("Türkçe", "Turkish")
+        self.lang_combo.addItem("Español", "Spanish")
         idx = self.lang_combo.findData(Translator.get_language())
         if idx >= 0:
             self.lang_combo.setCurrentIndex(idx)
@@ -292,6 +290,9 @@ class DashboardTab(QWidget):
         Translator.set_language(self.lang_combo.currentData())
 
     def retranslate_ui(self):
+        self.lang_combo.blockSignals(True)
+        self.lang_combo.setCurrentIndex(self.lang_combo.findData(Translator.get_language()))
+        self.lang_combo.blockSignals(False)
         self.title.setText(Translator.get("welcome_title"))
         self.subtitle.setText(Translator.get("welcome_subtitle"))
 

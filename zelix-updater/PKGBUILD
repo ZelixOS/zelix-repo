@@ -1,18 +1,20 @@
 # PKGBUILD - ZelixOS Updater
 pkgname=zelix-updater
-pkgver=1.1.0
-pkgrel=5
+pkgver=1.2.0
+pkgrel=1
 pkgdesc="ZelixOS official system updater application (Monochrome edition)"
 arch=('any')
 options=('!debug' '!strip')
 url="https://github.com/ZelixOS/zelix-updater"
 license=('GPL')
-depends=('python' 'python-pyqt6' 'polkit' 'pacman-contrib' 'fakeroot')
+depends=('python' 'python-pyqt6' 'qt6-translations' 'polkit' 'pacman-contrib' 'fakeroot')
 
 source=("main.py"
+        "language_support.py"
         "zelix-updater.desktop"
         "zelix-updater.png")
 sha256sums=('SKIP'
+            'SKIP'
             'SKIP'
             'SKIP')
 
@@ -26,6 +28,7 @@ package() {
     install -d "$pkgdir/usr/bin"
 
     install -m755 main.py "$pkgdir/usr/share/zelix-updater/main.py"
+    install -m644 language_support.py "$pkgdir/usr/share/zelix-updater/language_support.py"
     install -m644 zelix-updater.desktop "$pkgdir/usr/share/applications/zelix-updater.desktop"
     install -m644 zelix-updater.png "$pkgdir/usr/share/zelix/zelix-updater.png"
     install -m644 zelix-updater.png "$pkgdir/usr/share/pixmaps/zelix-updater.png"

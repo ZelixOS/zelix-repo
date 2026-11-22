@@ -2,9 +2,12 @@ import sys
 import os
 from PyQt6.QtWidgets import QApplication
 from ui.main_window import MainWindow
+from utils.language_support import apply_qt_language
+from utils.translations import Translator
 
 def main():
     app = QApplication(sys.argv)
+    apply_qt_language(Translator._preference.language)
 
     # Load stylesheet — gracefully handle missing or inaccessible files
     style_path = os.path.join(os.path.dirname(__file__), "ui", "styles.qss")

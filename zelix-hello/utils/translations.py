@@ -1,4 +1,4 @@
-import os
+from .language_support import LanguagePreference, detect_language, apply_qt_language
 
 translations = {
     "Turkish": {
@@ -249,21 +249,157 @@ translations = {
     }
 }
 
+translations['Spanish'] = {'welcome_title': 'Bienvenido a ZelixOS',
+ 'welcome_subtitle': 'Conoce el sistema, instala aplicaciones y gestiona los ajustes básicos desde aquí.',
+ 'start_header': 'Primeros pasos',
+ 'doc_header': 'Descubre ZelixOS',
+ 'btn_readme': 'Léeme',
+ 'btn_release_info': 'Notas de versión',
+ 'btn_wiki': 'Documentación',
+ 'btn_forum': 'Comunidad',
+ 'btn_software': 'Aplicaciones',
+ 'btn_system': 'Sistema',
+ 'btn_drivers': 'Controladores',
+ 'btn_tweaks': 'Ajustes',
+ 'btn_get_involved': 'Participa',
+ 'btn_donate': 'Donar',
+ 'lbl_launch_start': 'Abrir al iniciar sesión',
+ 'btn_back': 'Atrás',
+ 'apps_title': 'Aplicaciones',
+ 'apps_description': 'Selecciona las aplicaciones que quieres instalar.',
+ 'apps_search': 'Buscar aplicaciones o paquetes',
+ 'apps_selected_count': '{count} paquetes seleccionados',
+ 'apps_install_selected': 'Instalar seleccionados',
+ 'apps_installed': 'Instalado',
+ 'apps_source_arch': 'Arch',
+ 'apps_source_flatpak': 'Flatpak',
+ 'apps_source_aur': 'AUR',
+ 'apps_multilib_required': 'Steam requiere el repositorio multilib',
+ 'apps_multilib_warning': 'Activa multilib en /etc/pacman.conf antes de instalar Steam.',
+ 'apps_confirm_install': 'Se instalarán estos paquetes:\n\n{packages}\n\n¿Quieres continuar?',
+ 'apps_aur_warning': 'Los paquetes del AUR los mantiene la comunidad. Revisa el PKGBUILD y los pasos '
+                     'mostrados en el terminal.',
+ 'apps_aur_review_prompt': 'Revisa el PKGBUILD y confirma para continuar con la instalación.',
+ 'apps_terminal_done': 'La operación ha terminado. Pulsa Intro para cerrar.',
+ 'apps_install_finished': 'La instalación de paquetes ha terminado.',
+ 'apps_install_missing': 'El proceso terminó, pero estos paquetes no aparecen instalados:\n'
+                         '\n'
+                         '{packages}\n'
+                         '\n'
+                         'Código del proceso: {code}\n'
+                         'Revisa la salida del terminal.',
+ 'sys_title': 'Sistema y actualizaciones',
+ 'sys_updates': 'Actualizaciones',
+ 'sys_maintenance': 'Mantenimiento del sistema',
+ 'sys_update': 'Actualizar sistema',
+ 'sys_updater_gui': 'Abrir actualizador',
+ 'sys_clear_cache': 'Limpiar caché de paquetes',
+ 'sys_remove_orphans': 'Eliminar paquetes huérfanos',
+ 'sys_optimize_mirrors': 'Actualizar servidores de descarga',
+ 'sys_enable_flathub': 'Activar Flathub',
+ 'sys_updater_missing': 'No se encontró Zelix Updater en este sistema.',
+ 'sys_rate_mirrors_missing': 'Instala rate-mirrors para actualizar los servidores de descarga.',
+ 'drivers_title': 'Controladores de hardware',
+ 'drivers_description': 'Revisa e instala los paquetes oficiales de Arch recomendados para el hardware '
+                        'detectado.',
+ 'drivers_refresh': 'Volver a detectar',
+ 'drivers_hardware_column': 'Hardware y paquete',
+ 'drivers_status_column': 'Estado',
+ 'drivers_install': 'Instalar seleccionados',
+ 'drivers_installed': 'Instalado',
+ 'drivers_recommended': 'Recomendado',
+ 'drivers_selected_count': '{count} paquetes seleccionados',
+ 'drivers_intel_cpu': 'Microcódigo del procesador Intel',
+ 'drivers_amd_cpu': 'Microcódigo del procesador AMD',
+ 'drivers_firmware': 'Firmware de dispositivos Linux',
+ 'drivers_amd_graphics': 'Mesa y Vulkan para AMD',
+ 'drivers_intel_graphics': 'Mesa y Vulkan para Intel',
+ 'drivers_nvidia_existing': 'Se conservará el controlador NVIDIA actual',
+ 'drivers_nvidia_modern': 'Controlador DKMS abierto para una GPU NVIDIA moderna',
+ 'drivers_nvidia_manual': 'Este modelo NVIDIA requiere verificar el controlador manualmente',
+ 'drivers_broadcom_manual': 'El controlador Broadcom debe elegirse según el identificador del dispositivo',
+ 'drivers_virtual_guest': 'Herramientas para máquinas virtuales',
+ 'drivers_no_profile': 'No hay paquetes recomendados automáticamente para este hardware',
+ 'drivers_detection_failed': 'No se pudo detectar el hardware PCI',
+ 'drivers_confirm': 'Se instalarán estos controladores:\n\n{packages}\n\n¿Quieres continuar?',
+ 'drivers_install_success': 'Se han instalado los paquetes de controladores.',
+ 'drivers_install_failed': 'La instalación no terminó. Código del proceso: {code}',
+ 'drivers_restart_note': 'Instalación de controladores completada. Reinicia para cargar los nuevos '
+                         'controladores.',
+ 'terminal_label': 'Salida del proceso',
+ 'tw_title': 'Ajustes del sistema',
+ 'tw_subtitle': 'Gestiona los servicios opcionales del sistema desde un solo lugar.',
+ 'tw_services': 'Gestión de servicios',
+ 'tw_service_column': 'Servicio',
+ 'tw_status_column': 'Estado',
+ 'tw_action_column': 'Acción',
+ 'tw_bt': 'Bluetooth',
+ 'tw_bt_desc': 'Dispositivos y conexiones Bluetooth',
+ 'tw_fw': 'Cortafuegos',
+ 'tw_fw_desc': 'Protección de red UFW',
+ 'tw_trim': 'TRIM para SSD',
+ 'tw_trim_desc': 'Mantenimiento semanal del almacenamiento SSD',
+ 'tw_printing': 'Impresión',
+ 'tw_printing_desc': 'Servicio de impresión CUPS',
+ 'tw_enable': 'Activar',
+ 'tw_disable': 'Desactivar',
+ 'tw_not_installed': 'No instalado',
+ 'tw_refresh': 'Actualizar estado',
+ 'tw_note': 'Solo se pueden modificar los servicios instalados.',
+ 'tw_firewall_disable_confirm': '¿Seguro que quieres desactivar el cortafuegos?',
+ 'tw_service_updated': 'Se ha actualizado el estado de {service}.',
+ 'tw_service_failed': 'La operación no terminó. Código del proceso: {code}',
+ 'cat_gaming': 'Juegos',
+ 'cat_office': 'Ofimática',
+ 'cat_editing': 'Multimedia',
+ 'cat_browsers': 'Navegadores',
+ 'cat_communication': 'Comunicación',
+ 'cat_terminals': 'Terminales y editores',
+ 'cat_graphics': 'Gráficos',
+ 'cat_utilities': 'Utilidades',
+ 'cat_system': 'Sistema',
+ 'cat_devtools': 'Desarrollo',
+ 'cat_aur': 'Asistentes del AUR',
+ 'readme_title': 'ZelixOS: primeros pasos',
+ 'readme_open_ext': 'Abrir en un editor externo',
+ 'readme_lang_switch': 'Cambiar idioma',
+ 'toggle_on': 'SÍ',
+ 'toggle_off': 'NO',
+ 'confirm_title': 'Confirmar',
+ 'confirm_update': '¿Quieres actualizar el sistema?',
+ 'no_orphans': 'No se encontraron paquetes huérfanos.',
+ 'status_running': 'En curso…',
+ 'status_active': 'Activo',
+ 'status_inactive': 'Inactivo',
+ 'status_unavailable': 'No instalado',
+ 'msg_success': 'Operación completada',
+ 'msg_error': 'Error',
+ 'msg_unsupported_term': 'No se encontró un terminal compatible (Alacritty, Konsole, etc.).',
+ 'msg_term_fail': 'No se pudo abrir el terminal:',
+ 'flathub_success': 'Se ha activado el repositorio Flathub.',
+ 'btn_close': 'Cerrar',
+ 'readme_missing': 'No se encontró el archivo de ayuda.',
+ 'readme_error': 'No se pudo leer el archivo: {error}'}
+translations['English'].update({'readme_missing': 'Readme file not found.', 'readme_error': 'Could not read the file: {error}'})
+translations['Turkish'].update({'readme_missing': 'Yardım dosyası bulunamadı.', 'readme_error': 'Dosya okunamadı: {error}'})
+LANGUAGE_KEYS = {'en': 'English', 'tr': 'Turkish', 'es': 'Spanish'}
+
+
 def detect_system_language():
-    for var in ["LANG", "LC_ALL", "LC_MESSAGES"]:
-        val = os.environ.get(var, "").lower()
-        if val.startswith("tr"):
-            return "Turkish"
-    return "English"
+    return LANGUAGE_KEYS[detect_language()]
 
 class Translator:
-    _current_lang = detect_system_language()
+    _preference = LanguagePreference('hello')
+    _current_lang = LANGUAGE_KEYS[_preference.language]
     _listeners = []
 
     @classmethod
     def set_language(cls, lang):
         if lang in translations:
             cls._current_lang = lang
+            code = next(code for code, key in LANGUAGE_KEYS.items() if key == lang)
+            cls._preference.set_language(code)
+            apply_qt_language(code)
             cls.notify()
 
     @classmethod
@@ -272,7 +408,7 @@ class Translator:
 
     @classmethod
     def get(cls, key):
-        return translations[cls._current_lang].get(key, key)
+        return translations[cls._current_lang].get(key, translations['English'].get(key, key))
 
     @classmethod
     def add_listener(cls, listener):

@@ -1,17 +1,18 @@
 pkgname=zelixpen
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="ZelixOS on-screen drawing and annotation tool"
 arch=('any')
-url="https://github.com/ZelixOS/zelix-repo"
+url="https://github.com/ZelixOS/zelixpen"
 license=('custom')
-depends=('python' 'python-pyqt6')
+depends=('python' 'python-pyqt6' 'qt6-translations')
 options=('!debug' '!strip')
-source=('main.py' 'zelixpen.desktop')
-sha256sums=('SKIP' 'SKIP')
+source=('main.py' 'language_support.py' 'zelixpen.desktop')
+sha256sums=('SKIP' 'SKIP' 'SKIP')
 
 package() {
     install -Dm644 "$srcdir/main.py" "$pkgdir/usr/share/zelixpen/main.py"
+    install -Dm644 "$srcdir/language_support.py" "$pkgdir/usr/share/zelixpen/language_support.py"
     install -Dm644 "$srcdir/zelixpen.desktop" "$pkgdir/usr/share/applications/zelixpen.desktop"
     install -d "$pkgdir/usr/bin"
     printf '#!/bin/bash\nexec python /usr/share/zelixpen/main.py "$@"\n' > "$pkgdir/usr/bin/zelixpen"

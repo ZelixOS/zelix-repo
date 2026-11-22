@@ -28,3 +28,7 @@ python main.py
 Update checks use `checkupdates`. The application icon and desktop entry are included in the source directory.
 
 The package recipe is maintained in [zelix-repo](https://github.com/ZelixOS/zelix-repo/tree/main/zelix-updater).
+
+## Languages
+
+English, Turkish, and Spanish are supported. Use the language selector to change the interface; the choice is saved for future sessions. The initial language follows `LC_ALL`, `LC_MESSAGES`, then `LANG`. External command output and native dialogs can follow the system locale.

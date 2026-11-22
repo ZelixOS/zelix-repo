@@ -10,7 +10,7 @@ Package recipes, packaging sources, and pacman repository indexes for ZelixOS ap
 | `zelix-updater/` | System update application |
 | `zelixins/` | Graphical installer |
 | `zelix-cli/` | Command-line management tool |
-| `zelixpen/` | On-screen drawing tool |
+| `zelixpen/` | Standalone drawing tool for a separate ZelixOS project |
 | `paru/`, `yay/` | AUR helper package recipes |
 | `x86_64/` | Repository database and file index |
 
@@ -19,7 +19,7 @@ Package recipes, packaging sources, and pacman repository indexes for ZelixOS ap
 On ZelixOS with the `zelixrepo` repository configured:
 
 ```bash
-sudo pacman -Syu zelix-hello zelix-updater zelix-cli zelixpen
+sudo pacman -Syu zelix-hello zelix-updater zelix-cli
 ```
 
 Package archives and repository indexes are distributed through the [stable release](https://github.com/ZelixOS/zelix-repo/releases/tag/stable). Large package archives are stored as release assets rather than in the Git source tree.
