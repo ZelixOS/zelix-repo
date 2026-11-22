@@ -2,6 +2,10 @@
 
 Package recipes, packaging sources, and pacman repository indexes for ZelixOS applications.
 
+![ZelixRepo package publishing flow](docs/images/zelixrepo-packages.svg)
+
+This repository publishes stable ZelixOS packages and the indexes pacman uses to find them. Application sources remain in their own repositories; package build recipes and repository metadata are maintained here.
+
 ## Packages
 
 | Directory | Contents |
