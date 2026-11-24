@@ -359,7 +359,12 @@ class AppsTab(QWidget):
             else Translator.get("apps_gaming_installed") if not remaining_gaming
             else Translator.get("apps_install_gaming")
         )
-        self.multilib_check.setChecked(self._multilib_enabled())
+        multilib_enabled = self._multilib_enabled()
+        notes = [Translator.get("apps_gaming_upgrade_note"), Translator.get("apps_gaming_drivers_note")]
+        if not multilib_enabled:
+            notes.append(Translator.get("apps_gaming_multilib_note"))
+        self.gaming_button.setToolTip("\n".join(notes))
+        self.multilib_check.setChecked(multilib_enabled)
         self.multilib_check.setVisible(any(p == "steam" or p.startswith("lib32-") for p in selected))
 
     def _remaining_gaming_packages(self):
@@ -391,10 +396,16 @@ class AppsTab(QWidget):
             helper = Path(__file__).resolve().parents[1] / "utils" / "enable_multilib.py"
             commands.append("sudo python " + shlex.quote(str(helper)))
         if arch:
-            operation = "-Syu" if full_upgrade else "-S"
-            commands.append(f"sudo pacman {operation} --needed -- " + shlex.join(arch))
+            if full_upgrade:
+                helper = Path(__file__).resolve().parents[1] / "utils" / "gaming_install.py"
+                commands.append("sudo python " + shlex.quote(str(helper)) + " -- " + shlex.join(arch))
+            else:
+                commands.append("sudo pacman -S --needed -- " + shlex.join(arch))
         if flatpak:
-            commands.append("command -v flatpak >/dev/null || sudo pacman -S --needed -- flatpak")
+            fallback = "sudo pacman -S --needed "
+            if full_upgrade:
+                fallback += "--noconfirm "
+            commands.append("command -v flatpak >/dev/null || " + fallback + "-- flatpak")
             commands.append("flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo")
             commands.append("flatpak install -y flathub " + shlex.join(flatpak))
         for package in aur:
@@ -442,27 +453,14 @@ class AppsTab(QWidget):
                 self, Translator.get("msg_error"), Translator.get("apps_multilib_warning")
             )
             return
-        names = "\n".join(f"- {self._package_name(p)}" for p in packages)
-        if gaming:
-            dialog = QMessageBox(self)
-            dialog.setIcon(QMessageBox.Icon.Question)
-            dialog.setWindowTitle(Translator.get("confirm_title"))
-            dialog.setText(Translator.get("apps_gaming_confirm").format(count=len(packages)))
-            notes = [Translator.get("apps_gaming_upgrade_note"),
-                     Translator.get("apps_gaming_drivers_note")]
-            if enable_multilib:
-                notes.append(Translator.get("apps_gaming_multilib_note"))
-            dialog.setInformativeText("\n\n".join(notes))
-            dialog.setDetailedText(names)
-            dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            answer = dialog.exec()
-        else:
+        if not gaming:
+            names = "\n".join(f"- {self._package_name(p)}" for p in packages)
             confirmation = Translator.get("apps_confirm_install").format(packages=names)
             if any(self._package_source(package) == "aur" for package in packages):
                 confirmation += "\n\n" + Translator.get("apps_aur_warning")
             answer = QMessageBox.question(self, Translator.get("confirm_title"), confirmation)
-        if answer != QMessageBox.StandardButton.Yes:
-            return
+            if answer != QMessageBox.StandardButton.Yes:
+                return
         status_file = None
         try:
             descriptor, status_file = tempfile.mkstemp(prefix="zelix-hello-install-")
@@ -474,7 +472,7 @@ class AppsTab(QWidget):
             status_path = shlex.quote(status_file)
             exit_handler = (
                 'code=$?; printf "%s\\n" "$code" > ' + status_path
-                + '; printf "\\n%s\\n" ' + done_text + '; read -r'
+                + ('; printf "\\n%s\\n" ' + done_text + '; read -r' if not gaming else '')
             )
             script = (
                 "trap " + shlex.quote(exit_handler) + " EXIT; "
