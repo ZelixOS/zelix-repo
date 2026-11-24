@@ -1,7 +1,10 @@
-import re
 import shlex
 import shutil
 import subprocess
+import os
+import tempfile
+import time
+from pathlib import Path
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
@@ -11,6 +14,7 @@ from PyQt6.QtWidgets import (
 )
 
 from utils.translations import Translator
+from utils.terminal import terminal_launch_command
 
 
 class AppsTab(QWidget):
@@ -40,7 +44,16 @@ class AppsTab(QWidget):
             ("Wine", "wine", "arch"),
             ("Winetricks", "winetricks", "arch"),
             ("GameMode", "gamemode", "arch"),
+            ("GameMode (32-bit)", "lib32-gamemode", "arch"),
             ("MangoHud", "mangohud", "arch"),
+            ("MangoHud (32-bit)", "lib32-mangohud", "arch"),
+            ("Gamescope", "gamescope", "arch"),
+            ("GOverlay", "goverlay", "arch"),
+            ("Protontricks", "protontricks", "arch"),
+            ("Vulkan Tools", "vulkan-tools", "arch"),
+            ("Vulkan Loader", "vulkan-icd-loader", "arch"),
+            ("Vulkan Loader (32-bit)", "lib32-vulkan-icd-loader", "arch"),
+            ("Heroic Games Launcher", "com.heroicgameslauncher.hgl", "flatpak"),
             ("ProtonUp-Qt", "net.davidotek.pupgui2", "flatpak"),
         ]),
         ("cat_terminals", [
@@ -99,6 +112,8 @@ class AppsTab(QWidget):
         ]),
     ]
 
+    GAMING_PACKAGES = [package for name, package, source in CATEGORIES[2][1]]
+
     def __init__(self, parent_window):
         super().__init__()
         self.parent_window = parent_window
@@ -110,6 +125,9 @@ class AppsTab(QWidget):
         self.installed_flatpak = set()
         self.install_process = None
         self.pending_packages = []
+        self.install_status_file = None
+        self.install_is_gaming = False
+        self.install_started_at = None
         self._updating_tree = False
         self._init_ui()
         Translator.add_listener(self)
@@ -135,6 +153,17 @@ class AppsTab(QWidget):
         self.description.setObjectName("page_description")
         self.description.setWordWrap(True)
         layout.addWidget(self.description)
+
+        gaming_row = QHBoxLayout()
+        self.gaming_description = QLabel()
+        self.gaming_description.setObjectName("muted_label")
+        self.gaming_description.setWordWrap(True)
+        gaming_row.addWidget(self.gaming_description, 1)
+        self.gaming_button = QPushButton()
+        self.gaming_button.setObjectName("primary_btn")
+        self.gaming_button.clicked.connect(self.install_gaming)
+        gaming_row.addWidget(self.gaming_button)
+        layout.addLayout(gaming_row)
 
         self.search_input = QLineEdit()
         self.search_input.setObjectName("search_input")
@@ -316,41 +345,42 @@ class AppsTab(QWidget):
             Translator.get("apps_selected_count").format(count=len(selected))
         )
         self.install_button.setEnabled(bool(selected) and self.install_process is None)
+        remaining_gaming = self._remaining_gaming_packages()
+        self.gaming_button.setEnabled(bool(remaining_gaming) and self.install_process is None)
+        self.gaming_button.setText(
+            Translator.get("status_running") if self.install_process is not None and self.install_is_gaming
+            else Translator.get("apps_gaming_installed") if not remaining_gaming
+            else Translator.get("apps_install_gaming")
+        )
         self.multilib_check.setChecked(self._multilib_enabled())
-        self.multilib_check.setVisible("steam" in selected)
+        self.multilib_check.setVisible(any(p == "steam" or p.startswith("lib32-") for p in selected))
+
+    def _remaining_gaming_packages(self):
+        return [p for p in self.GAMING_PACKAGES if not self._is_installed(p)]
 
     @staticmethod
     def _multilib_enabled():
         try:
-            with open("/etc/pacman.conf", "r", encoding="utf-8") as config:
-                return any(re.fullmatch(r"\s*\[multilib\]\s*", line) for line in config)
-        except OSError:
+            result = subprocess.run(
+                ["pacman-conf", "--repo-list"], capture_output=True, text=True,
+                timeout=5, check=False,
+            )
+            return result.returncode == 0 and "multilib" in result.stdout.splitlines()
+        except (OSError, subprocess.TimeoutExpired):
             return False
 
-    @staticmethod
-    def _terminal_command():
-        terminals = [
-            ("alacritty", ["alacritty", "-e"]),
-            ("konsole", ["konsole", "-e"]),
-            ("gnome-terminal", ["gnome-terminal", "--wait", "--"]),
-            ("xfce4-terminal", ["xfce4-terminal", "--disable-server", "-e"]),
-            ("kitty", ["kitty", "--"]),
-            ("foot", ["foot", "-e"]),
-            ("xterm", ["xterm", "-e"]),
-        ]
-        for name, command in terminals:
-            if shutil.which(name):
-                return command
-        return None
-
-    def _build_install_script(self, packages):
+    def _build_install_script(self, packages, full_upgrade=False, enable_multilib=False):
         arch = [p for p in packages if self.package_data[p]["source"] == "arch"]
         flatpak = [p for p in packages if self.package_data[p]["source"] == "flatpak"]
         aur = [p for p in packages if self.package_data[p]["source"] == "aur"]
         commands = ["set -e"]
         aur_review_prompt = shlex.quote(Translator.get("apps_aur_review_prompt"))
+        if enable_multilib:
+            helper = Path(__file__).resolve().parents[1] / "utils" / "enable_multilib.py"
+            commands.append("sudo python " + shlex.quote(str(helper)))
         if arch:
-            commands.append("sudo pacman -S --needed -- " + shlex.join(arch))
+            operation = "-Syu" if full_upgrade else "-S"
+            commands.append(f"sudo pacman {operation} --needed -- " + shlex.join(arch))
         if flatpak:
             commands.append("command -v flatpak >/dev/null || sudo pacman -S --needed -- flatpak")
             commands.append("flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo")
@@ -382,21 +412,30 @@ class AppsTab(QWidget):
                 "case \"$aur_confirm\" in y|Y|e|E) ;; *) exit 1 ;; esac; "
                 "makepkg -si); fi; fi"
             )
-        done_text = shlex.quote(Translator.get("apps_terminal_done"))
-        commands.extend([f"printf '\n%s\n' {done_text}", "read -r"])
         return "; ".join(commands)
 
     def install_selected(self):
-        packages = self.selected_packages()
+        self._install_packages(self.selected_packages())
+
+    def install_gaming(self):
+        self._install_packages(self._remaining_gaming_packages(), gaming=True)
+
+    def _install_packages(self, packages, gaming=False):
         if not packages:
             return
-        if "steam" in packages and not self._multilib_enabled():
+        needs_multilib = any(p == "steam" or p.startswith("lib32-") for p in packages)
+        enable_multilib = needs_multilib and not self._multilib_enabled()
+        if enable_multilib and not gaming:
             QMessageBox.warning(
                 self, Translator.get("msg_error"), Translator.get("apps_multilib_warning")
             )
             return
         names = "\n".join(f"- {self.package_data[p]['name']}" for p in packages)
         confirmation = Translator.get("apps_confirm_install").format(packages=names)
+        if gaming:
+            confirmation += "\n\n" + Translator.get("apps_gaming_upgrade_note")
+        if enable_multilib:
+            confirmation += "\n\n" + Translator.get("apps_gaming_multilib_note")
         if any(self.package_data[package]["source"] == "aur" for package in packages):
             confirmation += "\n\n" + Translator.get("apps_aur_warning")
         answer = QMessageBox.question(
@@ -406,19 +445,42 @@ class AppsTab(QWidget):
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
-        terminal = self._terminal_command()
-        if terminal is None:
-            QMessageBox.warning(
-                self, Translator.get("msg_error"), Translator.get("msg_unsupported_term")
-            )
-            return
+        status_file = None
         try:
-            script = self._build_install_script(packages)
-            self.install_process = subprocess.Popen(terminal + ["bash", "-lc", script])
+            descriptor, status_file = tempfile.mkstemp(prefix="zelix-hello-install-")
+            os.close(descriptor)
+            script = self._build_install_script(
+                packages, full_upgrade=gaming, enable_multilib=enable_multilib
+            )
+            done_text = shlex.quote(Translator.get("apps_terminal_done"))
+            status_path = shlex.quote(status_file)
+            exit_handler = (
+                'code=$?; printf "%s\\n" "$code" > ' + status_path
+                + '; printf "\\n%s\\n" ' + done_text + '; read -r'
+            )
+            script = (
+                "trap " + shlex.quote(exit_handler) + " EXIT; "
+                + "printf 'running\\n' > " + status_path + "; " + script
+            )
+            launch = terminal_launch_command(["bash", "-lc", script])
+            if launch is None:
+                os.unlink(status_file)
+                QMessageBox.warning(
+                    self, Translator.get("msg_error"), Translator.get("msg_unsupported_term")
+                )
+                return
+            self.install_process = subprocess.Popen(launch)
+            self.install_status_file = status_file
+            self.install_is_gaming = gaming
+            self.install_started_at = time.monotonic()
             self.pending_packages = list(packages)
         except OSError as error:
             self.install_process = None
             self.pending_packages = []
+            if status_file:
+                os.unlink(status_file)
+            self.install_status_file = None
+            self.install_started_at = None
             QMessageBox.warning(
                 self, Translator.get("msg_error"),
                 f"{Translator.get('msg_term_fail')} {error}",
@@ -426,17 +488,43 @@ class AppsTab(QWidget):
             return
         self.install_button.setEnabled(False)
         self.install_button.setText(Translator.get("status_running"))
+        self.gaming_button.setEnabled(False)
+        if gaming:
+            self.gaming_button.setText(Translator.get("status_running"))
         self.process_timer.start()
 
     def _check_install_process(self):
         if self.install_process is None:
             self.process_timer.stop()
             return
-        return_code = self.install_process.poll()
-        if return_code is None:
+        status_file = self.install_status_file
+        if not status_file:
             return
+        try:
+            with open(status_file, encoding="ascii") as result:
+                status = result.read().strip()
+        except OSError:
+            return
+        if status == "running":
+            return
+        if status:
+            try:
+                return_code = int(status)
+            except ValueError:
+                return
+        else:
+            launcher_code = self.install_process.poll()
+            if launcher_code is None or (
+                launcher_code == 0 and time.monotonic() - self.install_started_at < 8
+            ):
+                return
+            return_code = launcher_code or -1
         self.process_timer.stop()
         self.install_process = None
+        os.unlink(status_file)
+        self.install_status_file = None
+        self.install_is_gaming = False
+        self.install_started_at = None
         attempted_packages = self.pending_packages
         self.pending_packages = []
         self.refresh_installed_packages()
@@ -463,6 +551,7 @@ class AppsTab(QWidget):
         self.btn_back.setText(Translator.get("btn_back"))
         self.title.setText(Translator.get("apps_title"))
         self.description.setText(Translator.get("apps_description"))
+        self.gaming_description.setText(Translator.get("apps_gaming_description"))
         self.search_input.setPlaceholderText(Translator.get("apps_search"))
         self.install_button.setText(
             Translator.get("status_running")

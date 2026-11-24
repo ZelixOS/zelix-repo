@@ -1,12 +1,12 @@
 pkgname=zelix-hello
-pkgver=1.2.0
-pkgrel=2
+pkgver=1.3.0
+pkgrel=1
 pkgdesc="ZelixOS welcome and system maintenance application"
 arch=('any')
 options=('!debug' '!strip')
 url="https://github.com/ZelixOS/zelix-hello"
 license=('GPL')
-depends=('python' 'python-pyqt6' 'qt6-translations' 'qt6-svg' 'polkit')
+depends=('python' 'python-pyqt6' 'qt6-translations' 'qt6-svg' 'polkit' 'xdg-terminal-exec')
 optdepends=('rate-mirrors: mirror optimization'
             'flatpak: Flathub applications'
             'git: manual AUR package installation')
