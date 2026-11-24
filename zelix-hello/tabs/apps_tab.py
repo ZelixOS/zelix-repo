@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 
 from utils.translations import Translator
 from utils.terminal import terminal_launch_command
+from utils.gaming_packages import RUNTIME_PACKAGES, graphics_packages
 
 
 class AppsTab(QWidget):
@@ -255,9 +256,15 @@ class AppsTab(QWidget):
         self._refresh_package_items()
 
     def _is_installed(self, package):
-        source = self.package_data[package]["source"]
+        source = self._package_source(package)
         installed = self.installed_flatpak if source == "flatpak" else self.installed_arch
         return package in installed
+
+    def _package_source(self, package):
+        return self.package_data.get(package, {}).get("source", "arch")
+
+    def _package_name(self, package):
+        return self.package_data.get(package, {}).get("name", package)
 
     def _refresh_package_items(self):
         self._updating_tree = True
@@ -356,7 +363,12 @@ class AppsTab(QWidget):
         self.multilib_check.setVisible(any(p == "steam" or p.startswith("lib32-") for p in selected))
 
     def _remaining_gaming_packages(self):
-        return [p for p in self.GAMING_PACKAGES if not self._is_installed(p)]
+        packages = dict.fromkeys((
+            *self.GAMING_PACKAGES,
+            *RUNTIME_PACKAGES,
+            *graphics_packages(self.installed_arch),
+        ))
+        return [package for package in packages if not self._is_installed(package)]
 
     @staticmethod
     def _multilib_enabled():
@@ -370,9 +382,9 @@ class AppsTab(QWidget):
             return False
 
     def _build_install_script(self, packages, full_upgrade=False, enable_multilib=False):
-        arch = [p for p in packages if self.package_data[p]["source"] == "arch"]
-        flatpak = [p for p in packages if self.package_data[p]["source"] == "flatpak"]
-        aur = [p for p in packages if self.package_data[p]["source"] == "aur"]
+        arch = [p for p in packages if self._package_source(p) == "arch"]
+        flatpak = [p for p in packages if self._package_source(p) == "flatpak"]
+        aur = [p for p in packages if self._package_source(p) == "aur"]
         commands = ["set -e"]
         aur_review_prompt = shlex.quote(Translator.get("apps_aur_review_prompt"))
         if enable_multilib:
@@ -430,19 +442,25 @@ class AppsTab(QWidget):
                 self, Translator.get("msg_error"), Translator.get("apps_multilib_warning")
             )
             return
-        names = "\n".join(f"- {self.package_data[p]['name']}" for p in packages)
-        confirmation = Translator.get("apps_confirm_install").format(packages=names)
+        names = "\n".join(f"- {self._package_name(p)}" for p in packages)
         if gaming:
-            confirmation += "\n\n" + Translator.get("apps_gaming_upgrade_note")
-        if enable_multilib:
-            confirmation += "\n\n" + Translator.get("apps_gaming_multilib_note")
-        if any(self.package_data[package]["source"] == "aur" for package in packages):
-            confirmation += "\n\n" + Translator.get("apps_aur_warning")
-        answer = QMessageBox.question(
-            self,
-            Translator.get("confirm_title"),
-            confirmation,
-        )
+            dialog = QMessageBox(self)
+            dialog.setIcon(QMessageBox.Icon.Question)
+            dialog.setWindowTitle(Translator.get("confirm_title"))
+            dialog.setText(Translator.get("apps_gaming_confirm").format(count=len(packages)))
+            notes = [Translator.get("apps_gaming_upgrade_note"),
+                     Translator.get("apps_gaming_drivers_note")]
+            if enable_multilib:
+                notes.append(Translator.get("apps_gaming_multilib_note"))
+            dialog.setInformativeText("\n\n".join(notes))
+            dialog.setDetailedText(names)
+            dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            answer = dialog.exec()
+        else:
+            confirmation = Translator.get("apps_confirm_install").format(packages=names)
+            if any(self._package_source(package) == "aur" for package in packages):
+                confirmation += "\n\n" + Translator.get("apps_aur_warning")
+            answer = QMessageBox.question(self, Translator.get("confirm_title"), confirmation)
         if answer != QMessageBox.StandardButton.Yes:
             return
         status_file = None
