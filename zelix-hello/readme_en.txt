@@ -45,7 +45,7 @@ NOTE: 'Super' refers to the Windows key on your keyboard.
 * Wiki & Documentation: https://docs.zelixos.com
 * GitHub Organization: https://github.com/ZelixOS
 * Telegram Community: https://t.me/zelixos
-* Discord Server: https://discord.gg/zelixos
+* Reddit Community: https://reddit.com/r/ZelixOS
 
 You can continue using the tabs in the "Zelix Hello" application
 to customize your desktop experience, install popular applications,

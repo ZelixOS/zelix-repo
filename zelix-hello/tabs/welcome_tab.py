@@ -64,15 +64,15 @@ class WelcomeTab(QWidget):
         btn_forum = QPushButton("Forum")
         btn_forum.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://forum.zelixos.org")))
 
-        btn_discord = QPushButton("Discord")
-        btn_discord.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://discord.gg/zelixos")))
+        btn_reddit = QPushButton("Reddit")
+        btn_reddit.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://reddit.com/r/ZelixOS")))
 
         btn_github = QPushButton("GitHub")
         btn_github.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/ZelixOS")))
 
         links_layout.addWidget(btn_wiki)
         links_layout.addWidget(btn_forum)
-        links_layout.addWidget(btn_discord)
+        links_layout.addWidget(btn_reddit)
         links_layout.addWidget(btn_github)
 
         layout.addWidget(links_group)

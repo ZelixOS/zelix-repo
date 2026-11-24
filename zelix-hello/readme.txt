@@ -45,7 +45,7 @@ NOT: Super klavyenizdeki Windows tuşudur.
 * Wiki & Dokümantasyon: https://docs.zelixos.com
 * GitHub Sayfası: https://github.com/ZelixOS
 * Telegram Topluluğu: https://t.me/zelixos
-* Discord Sunucusu: https://discord.gg/zelixos
+* Reddit Topluluğu: https://reddit.com/r/ZelixOS
 
 Keyifli kullanımlar dileriz!
 - Muhammed Yasir Peker & ZelixOS Ekibi
@@ -97,7 +97,7 @@ NOTE: 'Super' refers to the Windows key on your keyboard.
 * Wiki & Documentation: https://docs.zelixos.com
 * GitHub Organization: https://github.com/ZelixOS
 * Telegram Community: https://t.me/zelixos
-* Discord Server: https://discord.gg/zelixos
+* Reddit Community: https://reddit.com/r/ZelixOS
 
 We hope you enjoy your experience with ZelixOS!
 - Muhammed Yasir Peker & The ZelixOS Team

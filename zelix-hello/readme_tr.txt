@@ -45,7 +45,7 @@ NOT: Super klavyenizdeki Windows tuşudur.
 * Wiki & Dokümantasyon: https://docs.zelixos.com
 * GitHub Sayfası: https://github.com/ZelixOS
 * Telegram Topluluğu: https://t.me/zelixos
-* Discord Sunucusu: https://discord.gg/zelixos
+* Reddit Topluluğu: https://reddit.com/r/ZelixOS
 
 ZelixOS deneyiminizi kişiselleştirmek için "Zelix Hello" uygulaması
 üzerindeki sekmeleri kullanmaya devam edebilirsiniz.
