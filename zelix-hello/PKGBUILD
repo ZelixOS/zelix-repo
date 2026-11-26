@@ -1,6 +1,6 @@
 pkgname=zelix-hello
 pkgver=1.3.2
-pkgrel=1
+pkgrel=2
 pkgdesc="ZelixOS welcome and system maintenance application"
 arch=('any')
 options=('!debug' '!strip')

@@ -62,7 +62,7 @@ class WelcomeTab(QWidget):
         btn_wiki.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://docs.zelixos.com")))
 
         btn_forum = QPushButton("Forum")
-        btn_forum.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://forum.zelixos.org")))
+        btn_forum.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://forum.zelixos.com")))
 
         btn_reddit = QPushButton("Reddit")
         btn_reddit.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://reddit.com/r/ZelixOS")))
